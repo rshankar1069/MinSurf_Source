@@ -13,8 +13,6 @@
  *  @Chenfei: -> DCO (hope we have the same result then ^^)
  *            -> parallelization
  *  @someone: -> implement timings
- *  @Philipp: -> check the initial guess stuff. seems that as of now, starting with z=0 is quicker.
- *            -> but: this might depend on the boundary conditions!
  *  @Sankar:  -> pre& postprocessing
  *            -> input-file: initGuess yes or no -> make this dependent on it
  * 
