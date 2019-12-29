@@ -10,8 +10,6 @@
  *            -> make run (compile and run the code)
  *            -> make test (compile and run the tests)
  *            -> Tests (you can start with this now I guess)
- *  @Chenfei: -> DCO (hope we have the same result then ^^)
- *            -> parallelization
  *  @someone: -> implement timings
  *  @Sankar:  -> pre& postprocessing
  *            -> input-file: initGuess yes or no -> make this dependent on it
