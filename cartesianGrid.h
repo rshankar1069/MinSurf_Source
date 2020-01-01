@@ -6,15 +6,7 @@
  *  Grid class -- header file
  */
 
-#include<iostream>
-#include<stdio.h>
-#include<vector>
-#include<cmath>
-#include<algorithm>
-
 #pragma once
-
-//~#include"inputParser.h" // @Sankar
 
 // Here we want some further explanations...
 

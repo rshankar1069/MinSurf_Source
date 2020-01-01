@@ -21,7 +21,7 @@
 #include"cartesianGrid.h"
 #pragma once
 
-//~#include"inputParser.h" //@Sankar
+#include"inputParser.h" //@Sankar
 
 
 template<class mType, class dType> class solver

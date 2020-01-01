@@ -6,7 +6,9 @@
  *  Solver class
  */
 
-#include"solver.h"
+#include "solver.h"
+#include "inputParser.h"
+#include "atmsp.h"
 
 // -------------------------------------------------------------------------------------------------
 // Function to set the grid-related properties -> Sankar: extend?
@@ -21,23 +23,75 @@ void solver<mType, dType>::setMesh( ) { // @Sankar, maybe play here with the inp
 // Function to apply boundary conditions - needs to be extended -> Sankar
 template <class mType, class dType>
 void solver<mType, dType>::applyBC( Eigen::MatrixBase<mType> &inVec ) {
-    // Set boundary values
+
+    ATMSP<float> parser;
+    ATMSB<float> byteCode;
+
+    std::string varnames;
+
+    std::map<std::string,float> consts = input_parser::getConsts();
+    std::vector<std::string> variables = input_parser::getVars();
+
+    for(auto constit=consts.begin(); constit!=consts.end(); constit++)
+    {
+        parser.addConstant(constit->first,constit->second);
+    }
+    
+    // Storing the variable names in the parser
+    
+    for(int i=0; i<variables.size(); i++)
+    {
+        if(i!=variables.size()-1)
+            varnames += variables[i]+",";
+        else
+            varnames += variables[i];
+    }
+
     // On the bottom
-    for(auto& index: grid.bdryNodeList.bottom) {
-        inVec[index] = pow( grid.getCooX(index) - 0.5, 2);
+    std::string bottom = input_parser::getBCBottom();
+    parser.parse(byteCode,bottom,varnames);
+
+    for(auto& index: grid.bdryNodeList.bottom)
+    {
+        byteCode.var[0] = grid.getCooX(index);
+        byteCode.var[1] = grid.getCooY(index);
+        inVec[index] = byteCode.run();
     }
+
     // On the right
-    for(auto& index: grid.bdryNodeList.right) {
-        inVec[index] = pow( grid.getCooY(index) - 0.5, 2);
+
+    std::string right = input_parser::getBCRight();
+    parser.parse(byteCode,right,varnames);
+
+    for(auto& index: grid.bdryNodeList.right)
+    {
+        byteCode.var[0] = grid.getCooX(index);
+        byteCode.var[1] = grid.getCooY(index);
+        inVec[index] = byteCode.run();
     }
+
     // On the top
-    for(auto& index: grid.bdryNodeList.top) {
-        inVec[index] = pow( grid.getCooX(index) - 0.5, 2);
+    std::string top = input_parser::getBCTop();
+    parser.parse(byteCode,top,varnames);
+
+    for(auto& index: grid.bdryNodeList.top)
+    {
+        byteCode.var[0] = grid.getCooX(index);
+        byteCode.var[1] = grid.getCooY(index);
+        inVec[index] = byteCode.run();
     }
+
     // On the left
-    for(auto& index: grid.bdryNodeList.left) {
-        inVec[index] = pow( grid.getCooY(index) - 0.5, 2);
+    std::string left = input_parser::getBCLeft();
+    parser.parse(byteCode,left,varnames);
+
+    for(auto& index: grid.bdryNodeList.left)
+    {
+        byteCode.var[0] = grid.getCooX(index);
+        byteCode.var[1] = grid.getCooY(index);
+        inVec[index] = byteCode.run();
     }
+    
 }
 
 // -------------------------------------------------------------------------------------------------

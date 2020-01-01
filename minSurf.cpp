@@ -25,6 +25,8 @@
  *  at the end!
  */
 
+#include"inputParser.h"
+#include"inputParser.cpp"
 #include"cartesianGrid.h"
 #include"cartesianGrid.cpp"
 #include"solver.h"
