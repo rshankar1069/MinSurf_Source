@@ -11,7 +11,6 @@
 #include<vector>
 #include<valarray>
 #include<cmath>
-#include<fstream>
 #include"Eigen/Eigen/Sparse"
 #include"Eigen/Eigen/Eigenvalues"
 #include"Eigen/Eigen/SparseLU"
@@ -20,8 +19,6 @@
 
 #include"cartesianGrid.h"
 #pragma once
-
-#include"inputParser.h" //@Sankar
 
 
 template<class mType, class dType> class solver

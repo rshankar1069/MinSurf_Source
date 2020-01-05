@@ -31,6 +31,8 @@
 #include"cartesianGrid.cpp"
 #include"solver.h"
 #include"solver.cpp"
+#include"postProcessor.h"
+#include"postProcessor.cpp"
 
 // Whatever only needs to touch the inner nodes, maybe (and probably)
 //       there is a smart way to avoid allocating the full N*N
@@ -50,5 +52,5 @@ int main() {
     minSurf.setMesh();
     std::cout << "noGridPoints: " << minSurf.grid.noGridPoints << std::endl;
     minSurf.runSolver();
-    
+    structuredGridWriter();
 }

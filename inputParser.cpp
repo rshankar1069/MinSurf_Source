@@ -1,3 +1,11 @@
+/*  Simulation Sciences Laboratory
+ *  WS 2019/20
+ *  Chenfei Fan, Praveen Mishra, Sankrarasubramanian Ragunathan, Philipp Schleich
+ *  Project 1 - "Minimal Surfaces"
+ *
+ *  Input Parsing class -- source file
+ */
+
 #include "inputParser.h"
 
 void input_parser::readFile(std::string filename)
@@ -35,7 +43,6 @@ void input_parser::setN()
     {
         int pos = std::distance(tokens.begin(),iterator);
         N = std::stoi(tokens[pos+1]);
-        std::cout << "N\t==\t" << N << std::endl; 
     }
     else
     {
@@ -51,7 +58,6 @@ void input_parser::setBCBottom()
     {
         int pos = std::distance(tokens.begin(),iterator);
         bottom = tokens[pos+1];
-        std::cout << "BC.BOTTOM\t==\t" << bottom << std::endl; 
     }
     else
     {
@@ -67,7 +73,6 @@ void input_parser::setBCRight()
     {
         int pos = std::distance(tokens.begin(),iterator);
         right = tokens[pos+1];
-        std::cout << "BC.RIGHT\t==\t" << right << std::endl; 
     }
     else
     {
@@ -83,7 +88,6 @@ void input_parser::setBCTop()
     {
         int pos = std::distance(tokens.begin(),iterator);
         top = tokens[pos+1];
-        std::cout << "BC.TOP\t==\t" << top << std::endl; 
     }
     else
     {
@@ -98,8 +102,7 @@ void input_parser::setBCLeft()
     if (iterator != tokens.cend())
     {
         int pos = std::distance(tokens.begin(),iterator);
-        left = tokens[pos+1];
-        std::cout << "BC.LEFT\t==\t" << left << std::endl; 
+        left = tokens[pos+1]; 
     }
     else
     {

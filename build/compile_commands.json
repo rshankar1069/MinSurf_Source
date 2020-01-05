@@ -1,0 +1,7 @@
+[
+{
+  "directory": "/home/sankarpc/Documents/SiSc_Lab/Source_Playground_2/build",
+  "command": "/usr/bin/g++-7   -isystem /usr/local/include/vtk-8.2  -fvisibility-inlines-hidden -std=c++17 -fmessage-length=0 -march=nocona -mtune=haswell -ftree-vectorize -fPIC -fstack-protector-strong -fno-plt -O2 -ffunction-sections -pipe -isystem /home/sankarpc/anaconda3/include  -g   -std=gnu++11 -o CMakeFiles/minSurf.dir/minSurf.cpp.o -c /home/sankarpc/Documents/SiSc_Lab/Source_Playground_2/minSurf.cpp",
+  "file": "/home/sankarpc/Documents/SiSc_Lab/Source_Playground_2/minSurf.cpp"
+}
+]

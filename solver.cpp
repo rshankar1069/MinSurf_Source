@@ -9,6 +9,7 @@
 #include "solver.h"
 #include "inputParser.h"
 #include "atmsp.h"
+#include <fstream>
 
 // -------------------------------------------------------------------------------------------------
 // Function to set the grid-related properties -> Sankar: extend?
@@ -24,13 +25,15 @@ void solver<mType, dType>::setMesh( ) { // @Sankar, maybe play here with the inp
 template <class mType, class dType>
 void solver<mType, dType>::applyBC( Eigen::MatrixBase<mType> &inVec ) {
 
+    input_parser inputParserObj;
+
     ATMSP<float> parser;
     ATMSB<float> byteCode;
 
     std::string varnames;
 
-    std::map<std::string,float> consts = input_parser::getConsts();
-    std::vector<std::string> variables = input_parser::getVars();
+    std::map<std::string,float> consts = inputParserObj.getConsts();
+    std::vector<std::string> variables = inputParserObj.getVars();
 
     for(auto constit=consts.begin(); constit!=consts.end(); constit++)
     {
@@ -48,7 +51,7 @@ void solver<mType, dType>::applyBC( Eigen::MatrixBase<mType> &inVec ) {
     }
 
     // On the bottom
-    std::string bottom = input_parser::getBCBottom();
+    std::string bottom = inputParserObj.getBCBottom();
     parser.parse(byteCode,bottom,varnames);
 
     for(auto& index: grid.bdryNodeList.bottom)
@@ -60,7 +63,7 @@ void solver<mType, dType>::applyBC( Eigen::MatrixBase<mType> &inVec ) {
 
     // On the right
 
-    std::string right = input_parser::getBCRight();
+    std::string right = inputParserObj.getBCRight();
     parser.parse(byteCode,right,varnames);
 
     for(auto& index: grid.bdryNodeList.right)
@@ -71,7 +74,7 @@ void solver<mType, dType>::applyBC( Eigen::MatrixBase<mType> &inVec ) {
     }
 
     // On the top
-    std::string top = input_parser::getBCTop();
+    std::string top = inputParserObj.getBCTop();
     parser.parse(byteCode,top,varnames);
 
     for(auto& index: grid.bdryNodeList.top)
@@ -82,7 +85,7 @@ void solver<mType, dType>::applyBC( Eigen::MatrixBase<mType> &inVec ) {
     }
 
     // On the left
-    std::string left = input_parser::getBCLeft();
+    std::string left = inputParserObj.getBCLeft();
     parser.parse(byteCode,left,varnames);
 
     for(auto& index: grid.bdryNodeList.left)
@@ -367,7 +370,14 @@ void solver<mType, dType>::runSolver( ) {
     } while (res > 1.e-6 && iterationIndex < 100);
     std::cout << "Stopped after " << iterationIndex << " iterations with a residual of "
               << res << "." << std::endl;
-    std::cout << z << std::endl;
+    // std::cout << z << std::endl;
+
+    std::ofstream file;
+    file.open("./output.dat",std::ios::out | std::ios::trunc);
+
+    file << z;
+    file.close();
+
 }
 
 

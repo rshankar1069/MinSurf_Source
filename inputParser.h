@@ -1,3 +1,11 @@
+/*  Simulation Sciences Laboratory
+ *  WS 2019/20
+ *  Chenfei Fan, Praveen Mishra, Sankrarasubramanian Ragunathan, Philipp Schleich
+ *  Project 1 - "Minimal Surfaces"
+ *
+ *  Input Parsing class -- header file
+ */
+
 #ifndef INPUTPARSER_H_INCLUDED
 #define INPUTPARSER_H_INCLUDED
 
@@ -45,9 +53,10 @@ class input_parser
         std::vector<std::string> getVars();
 
         // Constructer definition to call Setter Functions
-        input_parser(std::string filename)
+        input_parser(std::string filename="../params.in")
         {
             // Read the file initially
+            #pragma once
             readFile(filename);
             setN();
             setBCBottom();
@@ -57,7 +66,5 @@ class input_parser
             setConsts();
             setVars();
         }
-
-        ~input_parser();
 };
 #endif //INPUTPARSER_H_INCLUDED

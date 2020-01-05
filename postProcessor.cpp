@@ -5,3 +5,59 @@
  *
  *  Post-processing class
  */
+
+#include "postProcessor.h"
+
+void structuredGridWriter()
+{
+    // Reading the output file to process the data into .vtk format
+    std::ifstream file;
+    file.open("./output.dat");
+
+    // Input parser object to get the number of nodes
+    input_parser inputParserObj;
+    int N = inputParserObj.getN();
+
+    double h = 1.0/N;
+
+    if(!file.is_open())
+    {
+        std::cout << "++++++++++ Error in opening the file !! Failed to post-process the data ++++++++++" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    else
+    {
+        // Storing the output data in a vector
+        std::vector<double> data;
+        std::string str;
+        while (std::getline(file,str))
+        {
+            if(str.size()>0)
+                data.push_back(std::stod(str));
+        }
+
+        // Create a grid
+        vtkSmartPointer<vtkStructuredGrid> structuredGrid = vtkSmartPointer<vtkStructuredGrid>::New();
+        
+        vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+        
+        unsigned k=0;
+        for(unsigned int j=0;j<N;j++)
+            for(unsigned int i=0;i<N;i++)
+            {
+                points->InsertNextPoint(i*h,j*h,data[k]);
+                k++;
+            }
+        
+        // Specify the dimensions of the grid
+        structuredGrid->SetDimensions(N,N,1);
+        structuredGrid->SetPoints(points);
+        
+        // Write file
+        vtkSmartPointer<vtkXMLStructuredGridWriter> writer =
+            vtkSmartPointer<vtkXMLStructuredGridWriter>::New();
+        writer->SetFileName("../output.vts");
+        writer->SetInputData(structuredGrid);
+        writer->Write();
+    }
+}

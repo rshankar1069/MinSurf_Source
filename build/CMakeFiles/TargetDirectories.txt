@@ -1,0 +1,3 @@
+/home/sankarpc/Documents/SiSc_Lab/Source_Playground_2/build/CMakeFiles/rebuild_cache.dir
+/home/sankarpc/Documents/SiSc_Lab/Source_Playground_2/build/CMakeFiles/minSurf.dir
+/home/sankarpc/Documents/SiSc_Lab/Source_Playground_2/build/CMakeFiles/edit_cache.dir
