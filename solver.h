@@ -1,6 +1,6 @@
 /*  Simulation Sciences Laboratory
  *  WS 2019/20
- *  Chenfei Fan, Praveen Mishra, Sankrarasubramanian Ragunathan, Philipp Schleich
+ *  Chenfei Fan, Praveen Mishra, Sankarasubramanian Ragunathan, Philipp Schleich
  *  Project 1 - "Minimal Surfaces"
  *
  *  Solver class -- header file
@@ -61,9 +61,10 @@ template<class mType, class dType> class solver
         // Jacobian of minSurf-Operator
         void minSurfJacByHand( Eigen::SparseMatrix<dType> &Jacobian,
                                                             const Eigen::MatrixBase<mType> &inVec);
-        //~void minSurfJacByDCO @Chenfei           
+        void minSurfJacOperator( Eigen::SparseMatrix<dType> &Jacobian, Eigen::MatrixBase<mType> &outVec,
+                        const Eigen::MatrixBase<mType> &inVec );
         // Residual function
-        dType residual( Eigen::MatrixBase<mType> &resVec, const Eigen::MatrixBase<mType> &solVec);
+        dType residual( Eigen::SparseMatrix<dType> &Jacobian, Eigen::MatrixBase<mType> &resVec, const Eigen::MatrixBase<mType> &solVec);
         
 };
 
