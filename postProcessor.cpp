@@ -29,7 +29,7 @@ void structuredGridWriter()
     else
     {
         // Storing the output data in a vector
-        std::vector<double> data;
+        std::vector<dType> data;
         std::string str;
         while (std::getline(file,str))
         {
