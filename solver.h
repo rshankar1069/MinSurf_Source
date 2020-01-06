@@ -40,8 +40,13 @@ template<class mType, class dType> class solver
         void runSolver( );
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     private:
-        int N;
-        dType h;
+        // Private variables
+        int N; // number of gridpoints
+        dType h; // grid spacing
+        int jacOption; // switch for options to determine Jacobian
+        
+        // Private methods
+        
         // Boundary conditions
         void applyBC( Eigen::MatrixBase<mType> &inVec );
         
@@ -55,16 +60,26 @@ template<class mType, class dType> class solver
         inline dType getDxx( const Eigen::MatrixBase<mType> &inVec, const int index );
         inline dType getDyy( const Eigen::MatrixBase<mType> &inVec, const int index );
         inline dType getDxy( const Eigen::MatrixBase<mType> &inVec, const int index );
+        
         // minSurf-Operator
         void minSurfOperator( Eigen::MatrixBase<mType> &outVec,
                         const Eigen::MatrixBase<mType> &inVec );
-        // Jacobian of minSurf-Operator
-        void minSurfJacByHand( Eigen::SparseMatrix<dType> &Jacobian,
-                                                            const Eigen::MatrixBase<mType> &inVec);
-        void minSurfJacOperator( Eigen::SparseMatrix<dType> &Jacobian, Eigen::MatrixBase<mType> &outVec,
-                        const Eigen::MatrixBase<mType> &inVec );
-        // Residual function
-        dType residual( Eigen::SparseMatrix<dType> &Jacobian, Eigen::MatrixBase<mType> &resVec, const Eigen::MatrixBase<mType> &solVec);
+        // Jacobian of minSurf-Operator - hardcoded and AD by hand version
+        void minSurfJac_HardCoded( Eigen::SparseMatrix<dType> &Jacobian,
+                               const Eigen::MatrixBase<mType> &inVec);
+        void minSurfJac_ADByHand( Eigen::SparseMatrix<dType> &Jacobian,
+                                 Eigen::MatrixBase<mType> &outVec,
+                                 const Eigen::MatrixBase<mType> &inVec );
+        // Residual function - hardcoded and AD by hand version
+        dType residual_HardCoded( Eigen::MatrixBase<mType> &resVec,
+                                  const Eigen::MatrixBase<mType> &solVec);
+        dType residual_ADByHand( Eigen::SparseMatrix<dType> &Jacobian, 
+                                 Eigen::MatrixBase<mType> &resVec,
+                                 const Eigen::MatrixBase<mType> &solVec);
+                                 
+        // Functions to run solver depending on way to determine Jacobian
+        void runSolver_HardCoded( );
+        void runSolver_ADByHand( );
         
 };
 

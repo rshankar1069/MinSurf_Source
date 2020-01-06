@@ -179,7 +179,7 @@ void solver<mType, dType>::minSurfOperator( Eigen::MatrixBase<mType> &outVec,
 // -------------------------------------------------------------------------------------------------
 // Jacobian by hand
 template <class mType, class dType> 
-void solver<mType, dType>::minSurfJacByHand( Eigen::SparseMatrix<dType> &Jacobian,
+void solver<mType, dType>::minSurfJac_HardCoded( Eigen::SparseMatrix<dType> &Jacobian,
                                                             const Eigen::MatrixBase<mType> &inVec) {
     typedef Eigen::Triplet<dType> triplet;
     std::vector<triplet> tripletList;
@@ -240,8 +240,9 @@ void solver<mType, dType>::minSurfJacByHand( Eigen::SparseMatrix<dType> &Jacobia
 // -------------------------------------------------------------------------------------------------
 // Jacobian by hand
 template <class mType, class dType> 
-void solver<mType, dType>::minSurfJacOperator( Eigen::SparseMatrix<dType> &Jacobian, Eigen::MatrixBase<mType> &outVec, 
-                                                            const Eigen::MatrixBase<mType> &inVec) {
+void solver<mType, dType>::minSurfJac_ADByHand( Eigen::SparseMatrix<dType> &Jacobian, 
+                                                Eigen::MatrixBase<mType> &outVec, 
+                                                const Eigen::MatrixBase<mType> &inVec) {
    const dType h = 1. / ((dType)N);
 
     typedef Eigen::Triplet<dType> triplet;
@@ -254,12 +255,13 @@ void solver<mType, dType>::minSurfJacOperator( Eigen::SparseMatrix<dType> &Jacob
     for (auto &i : grid.innerNodeList)
     {
         // forward
-        // d(...) = fd(x)
+        // d(...) = fd(x) // @Chenfei: can't we use the functions defined above??
         dType dx = (inVec[i + 1] - inVec[i - 1]) / (2 * h);
         dType dy = (inVec[i + N] - inVec[i - N]) / (2 * h);
         dType dxx = (inVec[i + 1] - 2 * inVec[i] + inVec[i - 1]) / (h * h);
         dType dyy = (inVec[i + N] - 2 * inVec[i] + inVec[i - N]) / (h * h);
-        dType dxy = (inVec[i + 1 + N] + inVec[i - 1 - N] - inVec[i + 1 - N] - inVec[i - 1 + N]) / (4 * h * h);
+        dType dxy = (inVec[i + 1 + N] + inVec[i - 1 - N] - inVec[i + 1 - N] - inVec[i - 1 + N])
+                        / (4 * h * h);
 
         // v1 = (1+z_x^2)*z_yy
         dType v1 = (1 + pow(dx, 2)) * dyy;
@@ -321,6 +323,7 @@ void solver<mType, dType>::minSurfJacOperator( Eigen::SparseMatrix<dType> &Jacob
     }
     // Build sparse matrix from triplets
     Jacobian.setFromTriplets(tripletList.begin(), tripletList.end());
+
 }
 
 // #################################################################################################
@@ -328,31 +331,57 @@ void solver<mType, dType>::minSurfJacOperator( Eigen::SparseMatrix<dType> &Jacob
 
 // -------------------------------------------------------------------------------------------------
 // Get residual by application of minSurf-operator
+// Function for hardcoded and ADByHand version
+
+// Get residual - hardcoded
 template <class mType, class dType>
-dType solver<mType, dType>::residual( Eigen::SparseMatrix<dType> &Jacobian, Eigen::MatrixBase<mType> &resVec,
-                                                           const Eigen::MatrixBase<mType> &solVec) {
+dType solver<mType, dType>::residual_HardCoded( Eigen::MatrixBase<mType> &resVec,
+                                      const Eigen::MatrixBase<mType> &solVec) {
     // computes residual entries in resVec
     // returns norm of r
     
     // F^h(z^h) = r^h
     // r^h contains the residual, which shall go to zero, in the innerNodeList, and 
     // the boundary information on the bdryNodeList
-    
-/*     minSurfOperator(resVec, solVec);
- */    minSurfJacOperator(Jacobian, resVec, solVec);
+    minSurfOperator(resVec, solVec);
     //~std::cout << resVec << std::endl;     
         
     dType res = 0;
-    for(auto& i: grid.innerNodeList) // Is there a smarter way to only compute the
-        res += pow(resVec[i], 2);    //  norm of the inner nodes?
+    for(auto& i: grid.innerNodeList)
+        res += pow(resVec[i], 2);
 
     return sqrt(res);
 }
 
+// Get residual - AD by hand
+template <class mType, class dType>
+dType solver<mType, dType>::residual_ADByHand( Eigen::SparseMatrix<dType> &Jacobian, 
+                                      Eigen::MatrixBase<mType> &resVec,
+                                      const Eigen::MatrixBase<mType> &solVec) {
+    // computes residual entries in resVec
+    // returns norm of r
+    
+    // F^h(z^h) = r^h
+    // r^h contains the residual, which shall go to zero, in the innerNodeList, and 
+    // the boundary information on the bdryNodeList
+     minSurfJac_ADByHand(Jacobian, resVec, solVec);
+    //~std::cout << resVec << std::endl;     
+        
+    dType res = 0;
+    for(auto& i: grid.innerNodeList)
+        res += pow(resVec[i], 2);
+
+    return sqrt(res);
+}
+
+
 // -------------------------------------------------------------------------------------------------
-// Main solver loop
+// Functions to run solver
+// Hardcoded and AD by hand versions
+
+// Run solver using hardcoded Jacobian
 template<class mType, class dType>
-void solver<mType, dType>::runSolver( ) {
+void solver<mType, dType>::runSolver_HardCoded( ) {
     mType z = mType::Zero(N*N);
     
     getInitGuess(z);
@@ -364,7 +393,7 @@ void solver<mType, dType>::runSolver( ) {
     mType dz = mType::Zero(N*N); 
     Eigen::SparseMatrix<dType> Jacobian(N*N, N*N);
     
-    res = residual(Jacobian, resVec, z);
+    res = residual_HardCoded(resVec, z);
         
     std::cout << "Starting residual: " << res << std::endl;
    
@@ -372,12 +401,9 @@ void solver<mType, dType>::runSolver( ) {
     unsigned iterationIndex = 0;
     // In case initial guess was not horrifically lucky, run Newton-Raphson
     do { 
-        
-        // get Jacobian (replaced by DCO-overloaded operator)
-        /* Jacobian.setZero();
-        minSurfJacByHand(Jacobian, z); */
-        //~std::cout << Jacobian << std::endl;
-        // Test for Eigenvalues of Jacobian - only test purpose, to know whether CG is a good idea or not
+        // get Jacobian
+        //~Jacobian.setZero(); // Should be unnecessary
+        minSurfJac_HardCoded(Jacobian, z);
         
         // dz_n = grad[F(z_n)]^-1 * F(z_n)
         // To be played with: preconditioner (MUST), 
@@ -391,7 +417,7 @@ void solver<mType, dType>::runSolver( ) {
         z -= omega*dz; 
     
         // get residual and resVec -> F(z_n)
-        res = residual(Jacobian, resVec, z);
+        res = residual_HardCoded(resVec, z);
         
         iterationIndex++;
         if( !(iterationIndex%1))
@@ -399,7 +425,66 @@ void solver<mType, dType>::runSolver( ) {
     } while (res > 1.e-6 && iterationIndex < 100);
     std::cout << "Stopped after " << iterationIndex << " iterations with a residual of "
               << res << "." << std::endl;
-    std::cout << z << std::endl;
+    //~std::cout << z << std::endl;
 }
 
+// Run solver using AD by hand
+template<class mType, class dType>
+void solver<mType, dType>::runSolver_ADByHand( ) {
+    mType z = mType::Zero(N*N);
+    
+    getInitGuess(z);
+    //~std::cout << z << std::endl;
+    //~applyBC(z); // This should be unnecessary if getInitGuess!
+    
+    dType res;
+    mType resVec = mType::Zero(N*N);
+    mType dz = mType::Zero(N*N); 
+    Eigen::SparseMatrix<dType> Jacobian(N*N, N*N);
+    
+    res = residual_ADByHand(Jacobian, resVec, z);
+        
+    std::cout << "Starting residual: " << res << std::endl;
+   
+    dType omega = 0.85; // Relaxation parameter for Newton-Raphson
+    unsigned iterationIndex = 0;
+    // In case initial guess was not horrifically lucky, run Newton-Raphson
+    do { 
+        // dz_n = grad[F(z_n)]^-1 * F(z_n)
+        // To be played with: preconditioner (MUST), 
+        // initial guess (maybe inversion of the Poisson-gradient might also help, but no idea), 
+        //     tolerance (MUST).. should not be too high, as our main goal is the result of Newton
+        Eigen::BiCGSTAB<Eigen::SparseMatrix<dType> > bicgstab;
+        bicgstab.compute(Jacobian);
+        dz = bicgstab.solve(resVec);
 
+        // z_{n+1} = z_n - dz
+        z -= omega*dz; 
+    
+        // get residual and resVec -> F(z_n)
+        res = residual_ADByHand(Jacobian, resVec, z);
+        
+        iterationIndex++;
+        if( !(iterationIndex%1))
+            std::cout << "\tAt iteration " << iterationIndex  << " res is " << res << std::endl;
+    } while (res > 1.e-6 && iterationIndex < 100);
+    std::cout << "Stopped after " << iterationIndex << " iterations with a residual of "
+              << res << "." << std::endl;
+    //~std::cout << z << std::endl;
+}
+
+// -------------------------------------------------------------------------------------------------
+// Main solver loop
+template<class mType, class dType>
+void solver<mType, dType>::runSolver( ) {
+    // Determine jacOption from input-file @Sankar
+    // ....
+    jacOption = 1; // for now...
+    
+    // Choose how to run solver
+    if (jacOption == 0)
+        runSolver_HardCoded();
+    else if (jacOption == 1)
+        runSolver_ADByHand();
+
+}
