@@ -8,6 +8,7 @@
 
 #include "postProcessor.h"
 
+template<typename dType>
 void structuredGridWriter()
 {
     // Reading the output file to process the data into .vtk format
@@ -18,7 +19,7 @@ void structuredGridWriter()
     input_parser inputParserObj;
     int N = inputParserObj.getN();
 
-    double h = 1.0/N;
+    dType h = 1.0/N;
 
     if(!file.is_open())
     {

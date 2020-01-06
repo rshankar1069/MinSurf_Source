@@ -52,5 +52,5 @@ int main() {
     minSurf.setMesh();
     std::cout << "noGridPoints: " << minSurf.grid.noGridPoints << std::endl;
     minSurf.runSolver();
-    structuredGridWriter();
+    structuredGridWriter<dType>();
 }
