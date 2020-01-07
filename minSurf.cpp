@@ -10,9 +10,8 @@
  *            -> make run (compile and run the code)
  *            -> make test (compile and run the tests)
  *            -> Tests (you can start with this now I guess)
- *  @someone: -> implement timings
- *  @Sankar:  -> pre& postprocessing
- *            -> input-file: initGuess yes or no -> make this dependent on it
+ *  @someone: -> implement timings (Google benchmark)
+ *            -> OpenMP!
  * 
  *  Whatever you do, check out a branch for this "project". I.e. not a personal branch, but a 
  *  branch "inputParser", where you only work on input-stuff or a branch "openMP", where you only 
@@ -27,13 +26,6 @@
 #include"cartesianGrid.cpp"
 #include"solver.h"
 #include"solver.cpp"
-
-// Whatever only needs to touch the inner nodes, maybe (and probably)
-//       there is a smart way to avoid allocating the full N*N
-// Returning the vector of the minSurfOperator does not really work
-// --> Switch to Eigen-containers!
-//     --> Now computing the minSurfOperator explodes, but should be resolved quickly
-
 
 int main() {
         
