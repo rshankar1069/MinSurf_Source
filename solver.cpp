@@ -92,9 +92,9 @@ void solver<mType, dType>::getInitGuess( Eigen::MatrixBase<mType> &z ){
     Eigen::SparseMatrix<dType> poissonMatrix(N*N, N*N);
     buildPoissonMatrix(poissonMatrix);
         
-    // Solve the Poisson equation using sparse Cholesky factorization
-    Eigen::BiCGSTAB<Eigen::SparseMatrix<dType> > bicgstab;
-    z = bicgstab.compute(poissonMatrix).solve(b);
+    // Solve the Poisson equation using CG (need to compare a few in the end / fine-tune) 
+    Eigen::ConjugateGradient<Eigen::SparseMatrix<dType> > cg;
+    z = cg.compute(poissonMatrix).solve(b);
     
 }
 
@@ -397,7 +397,7 @@ void solver<mType, dType>::runSolver_HardCoded( ) {
         
     std::cout << "Starting residual: " << res << std::endl;
    
-    dType omega = 0.85; // Relaxation parameter for Newton-Raphson
+    dType omega = 1.0; // Relaxation parameter for Newton-Raphson
     unsigned iterationIndex = 0;
     // In case initial guess was not horrifically lucky, run Newton-Raphson
     do { 
@@ -446,7 +446,7 @@ void solver<mType, dType>::runSolver_ADByHand( ) {
         
     std::cout << "Starting residual: " << res << std::endl;
    
-    dType omega = 0.85; // Relaxation parameter for Newton-Raphson
+    dType omega = 1.; // Relaxation parameter for Newton-Raphson
     unsigned iterationIndex = 0;
     // In case initial guess was not horrifically lucky, run Newton-Raphson
     do { 
