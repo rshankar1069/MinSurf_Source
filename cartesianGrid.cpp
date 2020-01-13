@@ -1,19 +1,24 @@
 /*  Simulation Sciences Laboratory
  *  WS 2019/20
- *  Chenfei Fan, Praveen Mishra, Sankarasubramanian Ragunathan, Philipp Schleich
+ *  Chenfei Fan, Praveen Mishra, Sankrarasubramanian Ragunathan, Philipp Schleich
  *  Project 1 - "Minimal Surfaces"
  *
  *  Grid class
  */
 
-#include"cartesianGrid.h"
+#include "inputParser.h"
+#include "cartesianGrid.h"
 
 // -------------------------------------------------------------------------------------------------
 // Setup grid parameters // @Sankar: from input file
 template <class dType, class listType>
-void cartesianGrid<dType, listType>::setupGrid( ) {
-    
-    setNoGridPoints( 101 );
+void cartesianGrid<dType, listType>::setupGrid() {
+
+    input_parser inputParserObj;
+
+    int N = inputParserObj.getN(); // Currently using number of nodes along x for both directions
+                                // Can be extended for different no. of nodes along x and y later on
+    setNoGridPoints(N);
     setGridSpacing();
     
     setBdryNodes();
