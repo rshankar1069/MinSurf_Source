@@ -373,7 +373,7 @@ void solver<mType, dType>::runSolver( ) {
     // std::cout << z << std::endl;
 
     std::ofstream file;
-    file.open("./output.dat",std::ios::out | std::ios::trunc);
+    file.open("./results/output.dat",std::ios::out | std::ios::trunc);
 
     file << z;
     file.close();

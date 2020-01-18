@@ -53,7 +53,7 @@ class input_parser
         std::vector<std::string> getVars();
 
         // Constructer definition to call Setter Functions
-        input_parser(std::string filename="../params.in")
+        input_parser(std::string filename="params.in")
         {
             // Read the file initially
             #pragma once

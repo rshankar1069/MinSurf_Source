@@ -13,7 +13,7 @@ void structuredGridWriter()
 {
     // Reading the output file to process the data into .vtk format
     std::ifstream file;
-    file.open("./output.dat");
+    file.open("./results/output.dat");
 
     // Input parser object to get the number of nodes
     input_parser inputParserObj;
@@ -57,7 +57,7 @@ void structuredGridWriter()
         // Write file
         vtkSmartPointer<vtkXMLStructuredGridWriter> writer =
             vtkSmartPointer<vtkXMLStructuredGridWriter>::New();
-        writer->SetFileName("../output.vts");
+        writer->SetFileName("./results/output.vts");
         writer->SetInputData(structuredGrid);
         writer->Write();
     }
