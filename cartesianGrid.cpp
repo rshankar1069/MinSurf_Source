@@ -1,6 +1,6 @@
 /*  Simulation Sciences Laboratory
  *  WS 2019/20
- *  Chenfei Fan, Praveen Mishra, Sankrarasubramanian Ragunathan, Philipp Schleich
+ *  Chenfei Fan, Praveen Mishra, Sankarasubramanian Ragunathan, Philipp Schleich
  *  Project 1 - "Minimal Surfaces"
  *
  *  Grid class
@@ -10,14 +10,15 @@
 #include "cartesianGrid.h"
 
 // -------------------------------------------------------------------------------------------------
-// Setup grid parameters // @Sankar: from input file
+// Setup grid parameters 
 template <class dType, class listType>
 void cartesianGrid<dType, listType>::setupGrid() {
 
+    // Read number of gridpoints from input file
     input_parser inputParserObj;
-
-    int N = inputParserObj.getN(); // Currently using number of nodes along x for both directions
-                                // Can be extended for different no. of nodes along x and y later on
+    int N = inputParserObj.getN(); 
+                        
+    // Set properties in grid        
     setNoGridPoints(N);
     setGridSpacing();
     
