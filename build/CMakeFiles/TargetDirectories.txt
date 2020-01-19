@@ -1,0 +1,3 @@
+/home/oi995116/Sem3/SiScLab/source/build/CMakeFiles/rebuild_cache.dir
+/home/oi995116/Sem3/SiScLab/source/build/CMakeFiles/minSurf.dir
+/home/oi995116/Sem3/SiScLab/source/build/CMakeFiles/edit_cache.dir

@@ -17,21 +17,20 @@
 #include <map>
 #include <vector>
 #include "atmsp.h"
-
 class input_parser
 {
     private:
-        int N;                                              // # of elements along x and y
-        std::string bottom,right,top,left;                  // BC expressions along the edges of the domain
-        std::map<std::string,float> consts;                 // Extra constants used in defining the expressions
-        std::vector<std::string> vars;                      // Variables defined in the expressions
+        int N;                                    // # of elements along x and y
+        std::string bottom,right,top,left;        // BC expressions along the edges of the domain
+        std::map<std::string,float> consts;       // Extra constants used in defining the expressions
+        std::vector<std::string> vars;            // Variables defined in the expressions
         std::vector<std::string> tokens;
-        std::string varnames;                               // Temporary variable to store variable names
-        double TOL;                                         // Tolerance value for the Newton-Raphson Iterations
-        int usePoissonGuess;                                // Option to choose Poisson Guess for the initial condition
-        int maxIter;                                        // Maximum number of iterations
-        int jacobianOpt;                                    // Option to choose the Jacobian to be used in solving the problem
-        int fileFreq;                                       // Option to choose the frequency in which the files are written
+        std::string varnames;                     // Temporary variable to store variable names
+        double TOL;                               // Tolerance value for the Newton-Raphson Iterations
+        int usePoissonGuess;                      // Option to choose Poisson Guess for the initial condition
+        int maxIter;                              // Maximum number of iterations
+        int jacOption;                            // Option to choose the Jacobian to be used in solving the problem
+        int fileFreq;                             // Option to choose the frequency in which the files are written
 
     public:
         // Function to read the file and initialize the mesh parameters
@@ -47,7 +46,7 @@ class input_parser
         void setVars();
         void setTOL();
         void setPoissonGuess();
-        void setjacobianOpt();
+        void setjacOption();
         void setmaxIters();
         void setfileFreq();
         
@@ -61,12 +60,12 @@ class input_parser
         std::vector<std::string> getVars();
         double getTOL();
         int getPoissonGuess();
-        int getjacobianOpt();
+        int getjacOption();
         int getmaxIters();
         int getfileFreq();
 
         // Constructer definition to call Setter Functions
-        input_parser(std::string filename="../params.in")
+        input_parser(std::string filename="params.in")
         {
             // Read the file initially
             readFile(filename);
@@ -80,7 +79,7 @@ class input_parser
             setTOL();
             setPoissonGuess();
             setmaxIters();
-            setjacobianOpt();
+            setjacOption();
             setfileFreq();
         }
 };

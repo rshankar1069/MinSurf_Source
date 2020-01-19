@@ -28,5 +28,4 @@
 // Function to write the structured VTK file of the final solution for visualization
 template<class dType>
 void structuredGridWriter(std::string filename,int iterationIndex);
-
 #endif //POSTPROCESS_H_INCLUDED

@@ -13,6 +13,7 @@ if (NOT VTK_FOUND)
   return ()
 endif()
 
+add_compile_options(-O3)
 message (STATUS "VTK_VERSION: ${VTK_VERSION}")
 
 if (VTK_VERSION VERSION_LESS "8.90.0")
