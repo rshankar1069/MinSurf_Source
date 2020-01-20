@@ -38,5 +38,5 @@ jacobianOpt 0
 
 ## File writing frequency
 # Set the value to 0 if no output is to be written
-fileFreq 0
+fileFreq 1
 

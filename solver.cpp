@@ -41,7 +41,7 @@ void solver<mType, dType>::applyBC( Eigen::MatrixBase<mType> &inVec ) {
 
     ATMSP<dType> parser;
     
-ATMSB<dType> byteCode;
+    ATMSB<dType> byteCode;
     std::string varnames;
 
     std::map<std::string,float> consts = inputParserObj.getConsts();
@@ -486,8 +486,8 @@ void solver<mType, dType>::runSolver_HardCoded( ) {
     
         // get residual and resVec -> F(z_n)
         res = residual_HardCoded(resVec, z);
-        
         iterationIndex++;
+        
         if( !(iterationIndex%inputParserObj.getfileFreq())) {
             // Writing the output data
             if(inputParserObj.getfileFreq() > 0) {
@@ -574,7 +574,7 @@ void solver<mType, dType>::runSolver_ADByHand( ) {
         
         iterationIndex++;
        
-        if( !(iterationIndex%inputParserObj.getfileFreq())) {
+        if( !(iterationIndex%inputParserObj.getfileFreq()) ) {
             // Writing the output data
             if(inputParserObj.getfileFreq() > 0) {
                 // Writing the solution output into .vts file
@@ -602,7 +602,7 @@ void solver<mType, dType>::runSolver_ADByHand( ) {
             std::cout << "\tAt iteration " << iterationIndex  << " res is " << res << std::endl;
         }
     } while (res > inputParserObj.getTOL() && iterationIndex < inputParserObj.getmaxIters());
-    std::cout << "Stopped after " << iterationIndex << " iterations with a residual of "     << res << "." << std::endl;
+    std::cout <<"Stopped after "<< iterationIndex <<" iterations with a residual of "<<res<<"."<<std::endl;
 
     // Writing final output data
     std::ofstream file;

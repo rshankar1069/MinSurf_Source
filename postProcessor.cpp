@@ -21,7 +21,7 @@ void structuredGridWriter(std::string filename,int iterationIndex) {
     dType h = 1.0/N;
 
     if(!file.is_open()) {
-        std::cout << "++++++++++ Error in opening the file !! Failed to post-process the data ++++++++++" << std::endl;
+        std::cout << "++++++++++ Error in opening the file!! Failed to post-process the data ++++++++++" << std::endl;
         exit(EXIT_FAILURE);
     }
     else {
@@ -39,8 +39,8 @@ void structuredGridWriter(std::string filename,int iterationIndex) {
         vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
         
         unsigned k=0;
-        for(unsigned int j=0;j<N;j++) {
-            for(unsigned int i=0;i<N;i++) {
+        for(unsigned j=0;j<N;j++) {
+            for(unsigned i=0;i<N;i++) {
                 points->InsertNextPoint(i*h,j*h,data[k]);
                 k++;
             }
@@ -55,7 +55,7 @@ void structuredGridWriter(std::string filename,int iterationIndex) {
             vtkSmartPointer<vtkXMLStructuredGridWriter>::New();
         
         char vtsfile[50];
-        sprintf(vtsfile,"../Output/Solution/output_%d.vts",iterationIndex);
+        sprintf(vtsfile,"/output/output_%d.vts",iterationIndex);
         writer->SetFileName(vtsfile);
         writer->SetInputData(structuredGrid);
         writer->Write();
