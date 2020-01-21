@@ -177,6 +177,27 @@ void solver<mType, dType>::minSurfOperator( Eigen::MatrixBase<mType> &outVec,
 }
 
 // -------------------------------------------------------------------------------------------------
+// Action of discrete minSurfOperator on an input vector (**vector**)
+template <class mType, class dType> 
+template <class T>
+std::vector<T> solver<mType, dType>::f(const std::vector<T> &inVec) {
+    std::vector<T> outVec(N*N);
+    for(auto& i: grid.innerNodeList) {
+       // tmp = (1+z_x^2)*z_yy
+       outVec[i] = (1 + pow((inVec[i+1] - inVec[i-1]) / (2*h), 2))
+                    * (inVec[i+N] -2*inVec[i] + inVec[i-N]) / (h*h) \
+       // tmp -= 2*z_x*z_y*z_xy
+       - 2*  (inVec[i+1] - inVec[i-1]) / (2*h) // z_x
+               *  (inVec[i+N] - inVec[i-N]) / (2*h) // z_y
+               * (inVec[i+1+N] + inVec[i-1-N] - inVec[i+1-N] - inVec[i-1+N]) / (4*h*h) // z_xy \
+       // tmp += (1+z_y^2)*z_xx
+       + (1 + pow((inVec[i+N] - inVec[i-N]) / (2*h), 2))
+                     * (inVec[i+1] -2*inVec[i] + inVec[i-1]) / (h*h);
+   }
+   return outVec;
+}
+
+// -------------------------------------------------------------------------------------------------
 // Jacobian by hand
 template <class mType, class dType> 
 void solver<mType, dType>::minSurfJac_HardCoded( Eigen::SparseMatrix<dType> &Jacobian,
@@ -397,7 +418,7 @@ void solver<mType, dType>::runSolver_HardCoded( ) {
         
     std::cout << "Starting residual: " << res << std::endl;
    
-    dType omega = 0.85; // Relaxation parameter for Newton-Raphson
+    dType omega = 1.0; // Relaxation parameter for Newton-Raphson
     unsigned iterationIndex = 0;
     // In case initial guess was not horrifically lucky, run Newton-Raphson
     do { 
@@ -425,7 +446,7 @@ void solver<mType, dType>::runSolver_HardCoded( ) {
     } while (res > 1.e-6 && iterationIndex < 100);
     std::cout << "Stopped after " << iterationIndex << " iterations with a residual of "
               << res << "." << std::endl;
-    //~std::cout << z << std::endl;
+    std::cout << z << std::endl;
 }
 
 // Run solver using AD by hand
@@ -470,7 +491,72 @@ void solver<mType, dType>::runSolver_ADByHand( ) {
     } while (res > 1.e-6 && iterationIndex < 100);
     std::cout << "Stopped after " << iterationIndex << " iterations with a residual of "
               << res << "." << std::endl;
-    //~std::cout << z << std::endl;
+    std::cout << z << std::endl;
+}
+
+// Run solver using AD by dco_c++
+template<class mType, class dType>
+void solver<mType, dType>::runSolver_ADbyDco( ) {
+
+    mType mz = mType::Zero(N*N);
+    getInitGuess(mz);
+
+    std::vector<dType> z(N*N);
+    for (int i=0; i<N*N; i++)
+        z[i] = mz[i];
+
+    std::vector<dType> dz(N*N, 0.0);
+    for (auto& i: grid.innerNodeList)
+        dz[i] = 1.0;
+
+    typedef typename dco::gt1s<dType>::type ADtype;
+    dType a, b, r2, r2old, res;
+    
+    unsigned iterationIndex = 0;
+    // In case initial guess was not horrifically lucky, run Newton-Raphson
+    do {
+        std::vector<ADtype> zt(std::begin(z), std::end(z));
+        for (auto& i: grid.innerNodeList)
+            dco::derivative(zt)[i] = dz[i]; // init z^(1) = dz
+        std::vector<ADtype> yt = f(zt); // (y, y^(1)) = F^(1)(x, x^(1));
+        std::vector<dType> p(N*N, 0.0);
+        for (auto& i: grid.innerNodeList)
+            p[i] = -1.0*dco::value(yt)[i]-1.0*dco::derivative(yt)[i];
+        std::vector<dType> r = p;
+
+        res = 0;
+        for (auto& i: grid.innerNodeList)
+            res += pow(dco::value(yt)[i], 2);
+        res = std::sqrt(res);
+
+        r2 = std::inner_product(r.begin(), r.end(), r.begin(), 0.0);
+        r2old = r2;
+        while (r2 > 1.e-16) {
+            for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = p[i];
+            yt = f(zt);
+            std::vector<dType> dy = dco::derivative(yt);
+            a = r2old / std::inner_product(p.begin(), p.end(), dy.begin(), 0.0); // a = (r*r)/(p*y^(1))
+            for (auto& i: grid.innerNodeList) {
+                dz[i] += a*p[i]; // dz += a*p
+                r[i] -= a*dy[i]; // r -= a*y^(1)
+            }
+            r2 = std::inner_product(r.begin(), r.end(), r.begin(), 0.0); // (r*r)
+            b = r2/r2old;
+            r2old = r2;
+            for (auto& i: grid.innerNodeList) p[i] = r[i] + b*p[i]; // p = r+b*p
+        }
+    
+        for (auto& i: grid.innerNodeList)
+            z[i] += dz[i];
+
+        if( !(iterationIndex%1))
+            std::cout << "\tAt iteration " << iterationIndex  << " res is " << res << std::endl;
+        iterationIndex++;
+    } while (res > 1.e-6 && iterationIndex < 100);
+
+    std::cout << "Stopped after " << iterationIndex << " iterations with a residual of "
+              << res << "." << std::endl;
+    for (int i=0; i<N*N; i++) std::cout << z[i] << std::endl;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -479,12 +565,13 @@ template<class mType, class dType>
 void solver<mType, dType>::runSolver( ) {
     // Determine jacOption from input-file @Sankar
     // ....
-    jacOption = 1; // for now...
+    jacOption = 2; // for now...
     
     // Choose how to run solver
     if (jacOption == 0)
         runSolver_HardCoded();
     else if (jacOption == 1)
         runSolver_ADByHand();
-
+    else if (jacOption == 2)
+        runSolver_ADbyDco();
 }
