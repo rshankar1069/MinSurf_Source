@@ -85,8 +85,10 @@ template<class mType, class dType> class solver
 
 template <class mType, class dType> solver<mType, dType>::solver() {
     std::cout << "Construct solver..." << std::endl;
-    Eigen::initParallel();
-    Eigen::setNbThreads(numThreads);
+    if ( N >= NminParallel ) {
+        Eigen::initParallel();
+        Eigen::setNbThreads(numThreads);
+    }
 }
 
 template <class mType, class dType> solver<mType, dType>::~solver() {

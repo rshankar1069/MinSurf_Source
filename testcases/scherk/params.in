@@ -19,7 +19,7 @@ VAR1 y
 # Boundary Conditions
 # Use constants with '$' sign to pass the expression to the parser 
 
-BC.BOTTOM 10 
-BC.RIGHT -10
-BC.TOP 10
-BC.LEFT -10
+BC.BOTTOM  1
+BC.RIGHT  -1
+BC.TOP     1
+BC.LEFT   -1
