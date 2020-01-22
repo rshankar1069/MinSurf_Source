@@ -104,7 +104,7 @@ void solver<mType, dType>::buildPoissonMatrix( Eigen::SparseMatrix<dType> &poiss
     
     typedef Eigen::Triplet<dType> triplet;
     std::vector<triplet> tripletList;
-    tripletList.reserve(5*N);
+    tripletList.reserve(5*N*N);
 
     // Assemble the FD matrix (should work, validated with matlab)
     // Set inner nodes - 5-pt stencil of FD (there should not be an issue with reaching 
@@ -117,7 +117,7 @@ void solver<mType, dType>::buildPoissonMatrix( Eigen::SparseMatrix<dType> &poiss
         tripletList.push_back(triplet(i ,i-N ,-1./(h*h) ));
     }
 
-// Set a 1 where Dirichlet BC applies
+    // Set a 1 where Dirichlet BC applies
     // Bottom
     for(auto& i: grid.bdryNodeList.bottom)
         tripletList.push_back(triplet(i, i, 1.));
@@ -150,8 +150,8 @@ void solver<mType, dType>::getInitGuess( Eigen::MatrixBase<mType> &z ){
     buildPoissonMatrix(poissonMatrix);
         
     // Solve the Poisson equation using CG (need to compare a few in the end / fine-tune) 
-    Eigen::ConjugateGradient<Eigen::SparseMatrix<dType> > cg;
-    z = cg.compute(poissonMatrix).solve(b);
+    Eigen::BiCGSTAB<Eigen::SparseMatrix<dType> > bicgstab;
+    z = bicgstab.compute(poissonMatrix).solve(b);
     
 }
 
@@ -243,55 +243,76 @@ void solver<mType, dType>::minSurfJac_HardCoded( Eigen::SparseMatrix<dType> &Jac
     tripletList.reserve(9*N*N);
     
     // Fill Jacobian
-    dType dx, dy, dxx, dyy, dxy;
-    for(auto& i: grid.innerNodeList) { // is innerNodeList really enough?
-        dx = getDx(inVec, i);
-        dy = getDy(inVec, i);
-        dxx = getDxx(inVec, i);
-        dyy = getDyy(inVec, i);
-        dxy = getDxy(inVec, i);
-        tripletList.push_back(triplet( i ,i,
-                                      -2./(h*h)*(1+pow(dx, 2)) 
-                                      -2./(h*h)*(1+pow(dy, 2))
-                                      ));
-        tripletList.push_back(triplet( i ,i+1, 
-                                       2./(2*h)*dx*dyy
-                                      +1./(h*h)*(1+pow(dy, 2))
-                                      -2.*( 1/(2*h) * dy*dxy)
-                                      ));
-        tripletList.push_back(triplet( i ,i-1, 
-                                      -2./(2*h)*dx*dyy
-                                      +1./(h*h)*(1+pow(dy, 2))
-                                      +2.*( 1/(2*h) * dy*dxy)
-                                      ));
-        tripletList.push_back(triplet( i, i+N,
-                                       1./(h*h)*(1+pow(dx, 2))
-                                      +2./(2*h)*dy*dxx
-                                      -2.*(1/(2*h) * dx*dxy)
-                                      ));
-        tripletList.push_back(triplet( i, i-N,
-                                       1./(h*h)*(1+pow(dx, 2))
-                                      -2./(2*h)*dy*dxx
-                                      +2.*(1/(2*h) * dx*dxy)
-                                      ));
-        tripletList.push_back(triplet( i ,i+1+N,
-                                      -2./(4*h*h)*dx*dy
-                                      ));
-        tripletList.push_back(triplet( i ,i-1+N,
-                                       2/(4*h*h)*dx*dy
-                                      ));
-        tripletList.push_back(triplet( i ,i+1-N,
-                                       2./(4*h*h)*dx*dy
-                                      ));
-        tripletList.push_back(triplet( i ,i-1-N,
-                                      -2./(4*h*h)*dx*dy
-                                      ));
+    #pragma omp parallel num_threads(numThreads) if(N>=NminParallel)
+    {
+      // Divide work among threads -> get numThreads heavy loops and only
+      //                              numThreads times communication necessary
+      //                              setFromTriplets does not need triplets ordered
+      int me = omp_get_thread_num(); 
+      int my_start = ( me ) * grid.innerNodeList.size()/numThreads;
+      int my_end   = (me+1) * grid.innerNodeList.size()/numThreads;
+      if (me == numThreads-1 || N<NminParallel)
+          my_end = (int) grid.innerNodeList.size();
+      
+      // Build triplets locally
+      std::vector<triplet> tripletListLocal;
+      dType dx, dy, dxx, dyy, dxy;
+      for(int index = my_start; index < my_end; index++) {
+          int i = grid.innerNodeList[index];
+          dx = getDx(inVec, i);
+          dy = getDy(inVec, i);
+          dxx = getDxx(inVec, i);
+          dyy = getDyy(inVec, i);
+          dxy = getDxy(inVec, i);
+          tripletListLocal.push_back(triplet( i, i, 
+                                             -2./(h*h)*(1+pow(dx, 2)) 
+                                             -2./(h*h)*(1+pow(dy, 2))
+                                             ));
+          tripletListLocal.push_back(triplet( i, i+1, 
+                                              2./(2*h)*dx*dyy
+                                             +1./(h*h)*(1+pow(dy, 2))
+                                             -2.*( 1/(2*h) * dy*dxy)
+                                             ));
+          tripletListLocal.push_back(triplet( i, i-1, 
+                                             -2./(2*h)*dx*dyy
+                                             +1./(h*h)*(1+pow(dy, 2))
+                                             +2.*( 1/(2*h) * dy*dxy)
+                                             ));
+          tripletListLocal.push_back(triplet( i, i+N,
+                                              1./(h*h)*(1+pow(dx, 2))
+                                             +2./(2*h)*dy*dxx
+                                             -2.*(1/(2*h) * dx*dxy)
+                                             ));
+          tripletListLocal.push_back(triplet( i, i-N,
+                                              1./(h*h)*(1+pow(dx, 2))
+                                             -2./(2*h)*dy*dxx
+                                             +2.*(1/(2*h) * dx*dxy)
+                                             ));
+          tripletListLocal.push_back(triplet( i, i+1+N,
+                                             -2./(4*h*h)*dx*dy
+                                             ));
+          tripletListLocal.push_back(triplet( i, i-1+N,
+                                              2/(4*h*h)*dx*dy
+                                             ));
+          tripletListLocal.push_back(triplet( i, i+1-N,
+                                              2./(4*h*h)*dx*dy
+                                             ));
+          tripletListLocal.push_back(triplet( i, i-1-N,
+                                        -2./(4*h*h)*dx*dy
+                                        ));
+          }
+          // Combine triplet list to global one
+          #pragma omp critical
+          {
+          std::move(tripletListLocal.begin(), tripletListLocal.end(),
+                     std::inserter(tripletList, tripletList.end()) );
+           tripletListLocal.clear();
+          }
     }
-    
-    
+          
     // Build sparse matrix from triplets
     Jacobian.setFromTriplets(tripletList.begin(), tripletList.end(),
-    [] (const dType &a, const dType &b) { return b; }); // @Chenfei, I do not really get what this does ^^
+    [] (const dType &a, const dType &b) { return b; }); 
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -378,6 +399,7 @@ void solver<mType, dType>::minSurfJac_ADByHand( Eigen::SparseMatrix<dType> &Jaco
         tripletList.push_back(triplet(i, i     + N, a1_x[7]));
         tripletList.push_back(triplet(i, i + 1 + N, a1_x[8]));
     }
+    
     // Build sparse matrix from triplets
     Jacobian.setFromTriplets(tripletList.begin(), tripletList.end());
 
@@ -444,22 +466,21 @@ void solver<mType, dType>::runSolver_HardCoded( ) {
     getInitGuess(z);
     //~std::cout << z << std::endl;
     //~applyBC(z); // This should be unnecessary if getInitGuess!
-    
+   
     dType res;
     mType resVec = mType::Zero(N*N);
     mType dz = mType::Zero(N*N); 
     Eigen::SparseMatrix<dType> Jacobian(N*N, N*N);
-    
+   
     res = residual_HardCoded(resVec, z);
         
     std::cout << "Starting residual: " << res << std::endl;
    
-    dType omega = 1.0; // Relaxation parameter for Newton-Raphson
+    dType omega = 0.85; // Relaxation parameter for Newton-Raphson
     unsigned iterationIndex = 0;
     // In case initial guess was not horrifically lucky, run Newton-Raphson
     do { 
         // get Jacobian
-        //~Jacobian.setZero(); // Should be unnecessary
         minSurfJac_HardCoded(Jacobian, z);
         
         // dz_n = grad[F(z_n)]^-1 * F(z_n)
@@ -488,6 +509,7 @@ void solver<mType, dType>::runSolver_HardCoded( ) {
     file << z;
     file.close();
 
+
 }
 
 // Run solver using AD by hand
@@ -498,7 +520,7 @@ void solver<mType, dType>::runSolver_ADByHand( ) {
     getInitGuess(z);
     //~std::cout << z << std::endl;
     //~applyBC(z); // This should be unnecessary if getInitGuess!
-    
+   
     dType res;
     mType resVec = mType::Zero(N*N);
     mType dz = mType::Zero(N*N); 
@@ -508,7 +530,7 @@ void solver<mType, dType>::runSolver_ADByHand( ) {
         
     std::cout << "Starting residual: " << res << std::endl;
    
-    dType omega = 1.; // Relaxation parameter for Newton-Raphson
+    dType omega = 0.85; // Relaxation parameter for Newton-Raphson
     unsigned iterationIndex = 0;
     // In case initial guess was not horrifically lucky, run Newton-Raphson
     do { 
@@ -532,7 +554,14 @@ void solver<mType, dType>::runSolver_ADByHand( ) {
     } while (res > 1.e-6 && iterationIndex < 100);
     std::cout << "Stopped after " << iterationIndex << " iterations with a residual of "
               << res << "." << std::endl;
-    //~std::cout << z << std::endl;
+
+    std::ofstream file;
+    file.open("./results/output.dat",std::ios::out | std::ios::trunc);
+    file << z;
+    file.close();
+
+
+   //~std::cout << z << std::endl;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -541,7 +570,7 @@ template<class mType, class dType>
 void solver<mType, dType>::runSolver( ) {
     // Determine jacOption from input-file @Sankar
     // ....
-    jacOption = 1; // for now...
+    jacOption = 0; // for now...
     
     // Choose how to run solver
     if (jacOption == 0)

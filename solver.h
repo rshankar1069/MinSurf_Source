@@ -41,7 +41,9 @@ template<class mType, class dType> class solver
         int N; // number of gridpoints
         dType h; // grid spacing
         int jacOption; // switch for options to determine Jacobian
-        
+        int numThreads = 10; // number of threads for OpenMP multithreading
+        int NminParallel = 100;
+ 
         // Private methods
         
         // Boundary conditions
