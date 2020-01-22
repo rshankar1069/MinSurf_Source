@@ -41,7 +41,7 @@ template<class mType, class dType> class solver
         int N; // number of gridpoints
         dType h; // grid spacing
         int jacOption; // switch for options to determine Jacobian
-        int numThreads = 10; // number of threads for OpenMP multithreading
+        int numThreads = 4; // number of threads for OpenMP multithreading
         int NminParallel = 100;
  
         // Private methods
@@ -50,7 +50,7 @@ template<class mType, class dType> class solver
         void applyBC( Eigen::MatrixBase<mType> &inVec );
         
         // Get initial guess by solving -u''=0 in D, u=g on dD via central FD
-        void buildPoissonMatrix( Eigen::SparseMatrix<dType> &poissonMatrix );
+        void buildPoissonMatrix( Eigen::SparseMatrix<dType, Eigen::RowMajor> &poissonMatrix );
         void getInitGuess( Eigen::MatrixBase<mType> &zE );
         
         // Helper functions for FD stencils
@@ -64,15 +64,15 @@ template<class mType, class dType> class solver
         void minSurfOperator( Eigen::MatrixBase<mType> &outVec,
                         const Eigen::MatrixBase<mType> &inVec );
         // Jacobian of minSurf-Operator - hardcoded and AD by hand version
-        void minSurfJac_HardCoded( Eigen::SparseMatrix<dType> &Jacobian,
+        void minSurfJac_HardCoded( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian,
                                const Eigen::MatrixBase<mType> &inVec);
-        void minSurfJac_ADByHand( Eigen::SparseMatrix<dType> &Jacobian,
+        void minSurfJac_ADByHand( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian,
                                  Eigen::MatrixBase<mType> &outVec,
                                  const Eigen::MatrixBase<mType> &inVec );
         // Residual function - hardcoded and AD by hand version
         dType residual_HardCoded( Eigen::MatrixBase<mType> &resVec,
                                   const Eigen::MatrixBase<mType> &solVec);
-        dType residual_ADByHand( Eigen::SparseMatrix<dType> &Jacobian, 
+        dType residual_ADByHand( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian, 
                                  Eigen::MatrixBase<mType> &resVec,
                                  const Eigen::MatrixBase<mType> &solVec);
                                  
@@ -85,6 +85,8 @@ template<class mType, class dType> class solver
 
 template <class mType, class dType> solver<mType, dType>::solver() {
     std::cout << "Construct solver..." << std::endl;
+    Eigen::initParallel();
+    Eigen::setNbThreads(numThreads);
 }
 
 template <class mType, class dType> solver<mType, dType>::~solver() {

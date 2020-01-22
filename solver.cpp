@@ -100,7 +100,7 @@ void solver<mType, dType>::applyBC( Eigen::MatrixBase<mType> &inVec ) {
 // -------------------------------------------------------------------------------------------------
 // Method to build poisson matrix
 template <class mType, class dType>
-void solver<mType, dType>::buildPoissonMatrix( Eigen::SparseMatrix<dType> &poissonMatrix ) { 
+void solver<mType, dType>::buildPoissonMatrix( Eigen::SparseMatrix<dType, Eigen::RowMajor> &poissonMatrix ) { 
     
     typedef Eigen::Triplet<dType> triplet;
     std::vector<triplet> tripletList;
@@ -146,11 +146,12 @@ void solver<mType, dType>::getInitGuess( Eigen::MatrixBase<mType> &z ){
     applyBC(b);
     
     // Build Poisson-matrix 
-    Eigen::SparseMatrix<dType> poissonMatrix(N*N, N*N);
+    Eigen::SparseMatrix<dType, Eigen::RowMajor> poissonMatrix(N*N, N*N);
     buildPoissonMatrix(poissonMatrix);
-        
+
     // Solve the Poisson equation using CG (need to compare a few in the end / fine-tune) 
-    Eigen::BiCGSTAB<Eigen::SparseMatrix<dType> > bicgstab;
+    Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
+    bicgstab.setTolerance(1e-6);
     z = bicgstab.compute(poissonMatrix).solve(b);
     
 }
@@ -236,7 +237,7 @@ void solver<mType, dType>::minSurfOperator( Eigen::MatrixBase<mType> &outVec,
 // -------------------------------------------------------------------------------------------------
 // Jacobian by hand
 template <class mType, class dType> 
-void solver<mType, dType>::minSurfJac_HardCoded( Eigen::SparseMatrix<dType> &Jacobian,
+void solver<mType, dType>::minSurfJac_HardCoded( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian,
                                                             const Eigen::MatrixBase<mType> &inVec) {
     typedef Eigen::Triplet<dType> triplet;
     std::vector<triplet> tripletList;
@@ -318,7 +319,7 @@ void solver<mType, dType>::minSurfJac_HardCoded( Eigen::SparseMatrix<dType> &Jac
 // -------------------------------------------------------------------------------------------------
 // Jacobian by hand
 template <class mType, class dType> 
-void solver<mType, dType>::minSurfJac_ADByHand( Eigen::SparseMatrix<dType> &Jacobian, 
+void solver<mType, dType>::minSurfJac_ADByHand( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian, 
                                                 Eigen::MatrixBase<mType> &outVec, 
                                                 const Eigen::MatrixBase<mType> &inVec) {
    const dType h = 1. / ((dType)N);
@@ -434,7 +435,7 @@ dType solver<mType, dType>::residual_HardCoded( Eigen::MatrixBase<mType> &resVec
 
 // Get residual - AD by hand
 template <class mType, class dType>
-dType solver<mType, dType>::residual_ADByHand( Eigen::SparseMatrix<dType> &Jacobian, 
+dType solver<mType, dType>::residual_ADByHand( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian, 
                                       Eigen::MatrixBase<mType> &resVec,
                                       const Eigen::MatrixBase<mType> &solVec) {
     // computes residual entries in resVec
@@ -470,7 +471,7 @@ void solver<mType, dType>::runSolver_HardCoded( ) {
     dType res;
     mType resVec = mType::Zero(N*N);
     mType dz = mType::Zero(N*N); 
-    Eigen::SparseMatrix<dType> Jacobian(N*N, N*N);
+    Eigen::SparseMatrix<dType, Eigen::RowMajor> Jacobian(N*N, N*N);
    
     res = residual_HardCoded(resVec, z);
         
@@ -487,7 +488,9 @@ void solver<mType, dType>::runSolver_HardCoded( ) {
         // To be played with: preconditioner (MUST), 
         // initial guess (maybe inversion of the Poisson-gradient might also help, but no idea), 
         //     tolerance (MUST).. should not be too high, as our main goal is the result of Newton
-        Eigen::BiCGSTAB<Eigen::SparseMatrix<dType> > bicgstab;
+        Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
+        std::cout<< "nThr:: " << Eigen::nbThreads(); 
+        bicgstab.setTolerance(1e-6);
         bicgstab.compute(Jacobian);
         dz = bicgstab.solve(resVec);
 
@@ -524,7 +527,7 @@ void solver<mType, dType>::runSolver_ADByHand( ) {
     dType res;
     mType resVec = mType::Zero(N*N);
     mType dz = mType::Zero(N*N); 
-    Eigen::SparseMatrix<dType> Jacobian(N*N, N*N);
+    Eigen::SparseMatrix<dType, Eigen::RowMajor> Jacobian(N*N, N*N);
     
     res = residual_ADByHand(Jacobian, resVec, z);
         
@@ -538,7 +541,8 @@ void solver<mType, dType>::runSolver_ADByHand( ) {
         // To be played with: preconditioner (MUST), 
         // initial guess (maybe inversion of the Poisson-gradient might also help, but no idea), 
         //     tolerance (MUST).. should not be too high, as our main goal is the result of Newton
-        Eigen::BiCGSTAB<Eigen::SparseMatrix<dType> > bicgstab;
+        Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
+        bicgstab.setTolerance(1e-6);
         bicgstab.compute(Jacobian);
         dz = bicgstab.solve(resVec);
 
