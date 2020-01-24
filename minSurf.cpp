@@ -27,7 +27,7 @@
 #include"solver.h"
 #include"solver.cpp"
 
-int main() {
+int main(int argc, char *argv[]) {
         
     typedef double dType;
     typedef Eigen::Matrix<dType,-1, 1> mType; // -1 -> Dynamic allocation (for arrays > 16, what 
@@ -37,6 +37,10 @@ int main() {
     solver<mType, dType> minSurf;
     minSurf.setMesh();
     std::cout << "noGridPoints: " << minSurf.grid.noGridPoints << std::endl;
-    minSurf.runSolver();
-    
+    if (argc < 2)
+        std::cout << "no jacOption" << std::endl;
+    else
+        minSurf.runSolver(atoi(argv[1]));
+
+    return 0;
 }

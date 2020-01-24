@@ -13,7 +13,7 @@
 template <class dType, class listType>
 void cartesianGrid<dType, listType>::setupGrid( ) {
     
-    setNoGridPoints( 30 );
+    setNoGridPoints( 333 );
     setGridSpacing();
     
     setBdryNodes();

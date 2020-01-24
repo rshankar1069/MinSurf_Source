@@ -41,13 +41,12 @@ template<class mType, class dType> class solver
         cartesianGrid<dType, listType> grid;
         
         void setMesh( );
-        void runSolver( );
+        void runSolver(int jacOption);
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     private:
         // Private variables
         int N; // number of gridpoints
         dType h; // grid spacing
-        int jacOption; // switch for options to determine Jacobian
         
         // Private methods
         
@@ -83,10 +82,7 @@ template<class mType, class dType> class solver
                                   const Eigen::MatrixBase<mType> &solVec);
         dType residual_ADByHand( Eigen::SparseMatrix<dType> &Jacobian, 
                                  Eigen::MatrixBase<mType> &resVec,
-                                 const Eigen::MatrixBase<mType> &solVec);
-        dType residual_dco( std::valarray<dType> &resVec,
-                                std::valarray<dType> &dz, 
-                                const std::valarray<dType> &solVec);                         
+                                 const Eigen::MatrixBase<mType> &solVec);                      
                                          
         // Functions to run solver depending on way to determine Jacobian
         void runSolver_HardCoded( );
