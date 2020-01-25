@@ -33,7 +33,7 @@
 
 int main() {
 
-    typedef float dType;
+    typedef double dType;
     typedef Eigen::Matrix<dType,-1, 1> mType; // -1 -> Dynamic allocation (for arrays > 16, what 
                                                // we usually have, there is no performance benefit 
                                                // for fixed size allocation

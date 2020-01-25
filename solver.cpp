@@ -182,6 +182,7 @@ void solver<mType, dType>::getInitGuess( Eigen::MatrixBase<mType> &z ){
     buildPoissonMatrix(poissonMatrix);
 
     // Solve the Poisson equation using BiCGSTAB 
+    Eigen::setNbThreads(numThreads);
     Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
     bicgstab.setTolerance(1e-8);
     z = bicgstab.compute(poissonMatrix).solve(b);
@@ -553,6 +554,7 @@ void solver<mType, dType>::runSolver_HardCoded( ) {
         // To be played with: preconditioner (MUST), 
         // initial guess (maybe inversion of the Poisson-gradient might also help, but no idea), 
         //     tolerance (MUST).. should not be too high, as our main goal is the result of Newton
+        Eigen::setNbThreads(numThreads);
         Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
         std::cout<< "nThr:: " << Eigen::nbThreads(); 
         bicgstab.setTolerance(1e-8);
@@ -612,6 +614,7 @@ void solver<mType, dType>::runSolver_ADByHand( ) {
         // To be played with: preconditioner (MUST), 
         // initial guess (maybe inversion of the Poisson-gradient might also help, but no idea), 
         //     tolerance (MUST).. should not be too high, as our main goal is the result of Newton
+        Eigen::setNbThreads(numThreads);
         Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
         std::cout<< "nThr:: " << Eigen::nbThreads(); 
         bicgstab.setTolerance(1e-6);
@@ -646,7 +649,7 @@ template<class mType, class dType>
 void solver<mType, dType>::runSolver( ) {
     // Determine jacOption from input-file @Sankar
     // ....
-    jacOption = 1; // for now...
+    jacOption = 0; // for now...
     
     // Choose how to run solver
     if (jacOption == 0)
