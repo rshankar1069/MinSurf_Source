@@ -1,6 +1,6 @@
 # Mesh Parameters
 
-N 700 
+N 600 
 
 # Constants (apart from "pi", "e" and "i")
 # Append '$' in the front of the constant to pass it to the expression parser
