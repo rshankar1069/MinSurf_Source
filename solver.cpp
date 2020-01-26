@@ -184,7 +184,7 @@ void solver<mType, dType>::getInitGuess( Eigen::MatrixBase<mType> &z ){
 
     // Solve the Poisson equation using BiCGSTAB 
     Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
-    bicgstab.setTolerance(1e-8);
+    bicgstab.setTolerance(TOL_linsolver);
     z = bicgstab.compute(poissonMatrix).solve(b);
     
 }
@@ -524,11 +524,18 @@ dType solver<mType, dType>::residual_ADByHand( Eigen::SparseMatrix<dType, Eigen:
 template<class mType, class dType>
 void solver<mType, dType>::runSolver_HardCoded( ) {
    mType z = mType::Zero(N*N);
-    
-   getInitGuess(z);
-   //~std::cout << z << std::endl;
-   //~applyBC(z); // This should be unnecessary if getInitGuess!
    
+ 
+   std::cout << "Chose to run";
+   if (inputParserObj.getPoissonGuess()) {
+       std::cout << " with non-trivial initial guess." << std::endl;
+       getInitGuess(z); 
+   }
+   else {
+       std::cout << " with trivial initial guess." << std::endl;
+       applyBC(z);
+   }
+  
    dType res;
    mType resVec = mType::Zero(N*N);
    mType dz = mType::Zero(N*N); 
@@ -538,8 +545,10 @@ void solver<mType, dType>::runSolver_HardCoded( ) {
       
    std::cout << "Starting residual: " << res << std::endl;
    
-   dType omega = 0.85; // Relaxation parameter for Newton-Raphson
+   dType omega = inputParserObj.getrelaxNewton(); // Relaxation parameter for Newton-Raphson
+
    unsigned iterationIndex = 0;
+
    // In case initial guess was not horrifically lucky, run Newton-Raphson
    do { 
        
@@ -551,8 +560,7 @@ void solver<mType, dType>::runSolver_HardCoded( ) {
        // initial guess (maybe inversion of the Poisson-gradient might also help, but no idea), 
        //     tolerance (MUST).. should not be too high, as our main goal is the result of Newton
        Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
-       std::cout<< "nThr:: " << Eigen::nbThreads(); 
-       bicgstab.setTolerance(1e-8);
+       bicgstab.setTolerance(TOL_linsolver);
        bicgstab.compute(Jacobian);
        dz = bicgstab.solve(resVec);
 
@@ -563,86 +571,120 @@ void solver<mType, dType>::runSolver_HardCoded( ) {
        res = residual_HardCoded(resVec, z);
        
        iterationIndex++;
-       if( !(iterationIndex%inputParserObj.getfileFreq())) {
+       if(inputParserObj.getfileFreq() > 0) {
            // Writing the output data
-           if(inputParserObj.getfileFreq() > 0) {
+           if( !(iterationIndex%inputParserObj.getfileFreq())) {
                // Writing the vtk files for visualization
                structuredGridWriter<mType,dType>(iterationIndex,z);
                // Writing the residual vs. iteration number into a csv file
                residualWriter<dType>(iterationIndex,res);
 
            }
-           std::cout << "\tAt iteration " << iterationIndex  << " res is " << res << std::endl;
        }
-   } while (res > inputParserObj.getTOL_Newton() && iterationIndex < inputParserObj.getmaxIters());
+       std::cout << "\tIteration: " << iterationIndex  << "\tresidual: " << res << std::endl;
+
+   } while (res > inputParserObj.getTOL_Newton() && 
+            iterationIndex < inputParserObj.getmaxIters());
+
    std::cout << "Stopped after " << iterationIndex << " iterations with a residual of "
              << res << "." << std::endl;
-    
-    // Writing final output data
-    structuredGridWriter<mType,dType>(iterationIndex,z);
+   
+   // Writing final output data
+   structuredGridWriter<mType,dType>(iterationIndex,z);
 
-    // Writing the residual vs. iteration number of the final solution into a csv file
-    residualWriter<dType>(iterationIndex,res);
+   // Writing the residual vs. iteration number of the final solution into a csv file
+   residualWriter<dType>(iterationIndex,res);
 
 }
 
 // Run solver using AD by hand
 template<class mType, class dType>
 void solver<mType, dType>::runSolver_ADByHand( ) {
-    mType z = mType::Zero(N*N);
-    
-    getInitGuess(z);
-    //~std::cout << z << std::endl;
-    //~applyBC(z); // This should be unnecessary if getInitGuess!
-    std::ofstream file;
-    file.open("./results/output.dat",std::ios::out | std::ios::trunc);
-    file << z;
-    file.close();
-
-  
-    dType res;
-    mType resVec = mType::Zero(N*N);
-    mType dz = mType::Zero(N*N); 
-    Eigen::SparseMatrix<dType, Eigen::RowMajor> Jacobian(N*N, N*N);
+   mType z = mType::Zero(N*N);
    
-    // Determine initial residual + Jacobian 
-    res = residual_ADByHand(Jacobian, resVec, z);
-        
-    std::cout << "Starting residual: " << res << std::endl;
+   std::cout << "Chose to run";
+   if (inputParserObj.getPoissonGuess()) {
+       std::cout << " with non-trivial initial guess." << std::endl;
+       getInitGuess(z); 
+   }
+   else {
+       std::cout << " with trivial initial guess." << std::endl;
+       applyBC(z);
+   }
+ 
+   dType res;
+   mType resVec = mType::Zero(N*N);
+   mType dz = mType::Zero(N*N); 
+   Eigen::SparseMatrix<dType, Eigen::RowMajor> Jacobian(N*N, N*N);
    
-    dType omega = 0.85; // Relaxation parameter for Newton-Raphson
-    unsigned iterationIndex = 0;
-    // In case initial guess was not horrifically lucky, run Newton-Raphson
-    do { 
-        // dz_n = grad[F(z_n)]^-1 * F(z_n)
-        // To be played with: preconditioner (MUST), 
-        // initial guess (maybe inversion of the Poisson-gradient might also help, but no idea), 
-        //     tolerance (MUST).. should not be too high, as our main goal is the result of Newton
-        Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
-        std::cout<< "nThr:: " << Eigen::nbThreads(); 
-        bicgstab.setTolerance(1e-6);
-        bicgstab.compute(Jacobian);
-        dz = bicgstab.solve(resVec);
+   // Determine initial residual + Jacobian 
+   res = residual_ADByHand(Jacobian, resVec, z);
+       
+   std::cout << "Starting residual: " << res << std::endl;
+   
+   dType omega = inputParserObj.getrelaxNewton(); // Relaxation parameter for Newton-Raphson
+   
+   unsigned iterationIndex = 0;
+   // In case initial guess was not horrifically lucky, run Newton-Raphson
+   do { 
+       // dz_n = grad[F(z_n)]^-1 * F(z_n)
+       // To be played with: preconditioner (MUST), 
+       // initial guess (maybe inversion of the Poisson-gradient might also help, but no idea), 
+       //     tolerance (MUST).. should not be too high, as our main goal is the result of Newton
+       Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
+       bicgstab.setTolerance(TOL_linsolver);
+       bicgstab.compute(Jacobian);
+       dz = bicgstab.solve(resVec);
 
-        // z_{n+1} = z_n - dz
-        z -= omega*dz; 
-    
-        // get residual and resVec -> F(z_n)
-        res = residual_ADByHand(Jacobian, resVec, z);
-        
-        iterationIndex++;
-        if( !(iterationIndex%1))
-            std::cout << "\tAt iteration " << iterationIndex  << " res is " << res << std::endl;
-    } while (res > 1.e-6 && iterationIndex < 100);
-    std::cout << "Stopped after " << iterationIndex << " iterations with a residual of "
-              << res << "." << std::endl;
+       // z_{n+1} = z_n - dz
+       z -= omega*dz; 
+   
+       // get residual and resVec -> F(z_n)
+       res = residual_ADByHand(Jacobian, resVec, z);
+       
+       iterationIndex++;
+       if(inputParserObj.getfileFreq() > 0) {
+           // Writing the output data
+           if( !(iterationIndex%inputParserObj.getfileFreq()) ) {
+               // Writing the vtk files for visualization
+               structuredGridWriter<mType,dType>(iterationIndex,z);
+               // Writing the residual vs. iteration number into a csv file
+               residualWriter<dType>(iterationIndex,res);
+         }
+       }
+       std::cout << "\tIteration: " << iterationIndex  << "\tresidual: " << res << std::endl;
 
-    // Writing final output data
-    structuredGridWriter<mType,dType>(iterationIndex,z);
+   } while (res > inputParserObj.getTOL_Newton() && 
+            iterationIndex < inputParserObj.getmaxIters());
 
-    // Writing the residual vs. iteration number of the final solution into a csv file
-    residualWriter<dType>(iterationIndex,res);
+   std::cout << "Stopped after " << iterationIndex << " iterations with a residual of "
+             << res << "." << std::endl;
+
+   // Writing final output data
+   structuredGridWriter<mType,dType>(iterationIndex,z);
+
+   // Writing the residual vs. iteration number of the final solution into a csv file
+   residualWriter<dType>(iterationIndex,res);
 
 }
 
-
+// Main function to run solver dependent on choice of Jacobian
+template<class mType, class dType>
+void solver<mType, dType>::runSolver( ) {
+    std::cout << "Run minSurf-solver with" ;
+    int jacobianOpt = inputParserObj.getjacobianOpt();
+    switch(jacobianOpt) {
+        case 0:
+               std::cout << " hardcoded Jacobian option." << std::endl;
+               runSolver_HardCoded();
+               break;
+        case 1:
+               std::cout << " adjoint AD by hand Jacobian option." << std::endl;
+               runSolver_ADByHand();
+               break;
+        case 2:
+               std::cout << " DCO tangent Jacobian option with matrix free solver." << std::endl;
+               runSolver_HardCoded();
+               break;
+    }
+} 

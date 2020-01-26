@@ -31,6 +31,7 @@ class input_parser
         double TOL_linsolver;                               // Tolerance value for linear solver 
         int usePoissonGuess;                                // Option to choose Poisson Guess for the initial condition
         int maxIter;                                        // Maximum number of iterations
+        double relaxNewton;                                 // relaxation parameter for Newton procedure 
         int jacobianOpt;                                    // Option to choose the Jacobian to be used in solving the problem
         int fileFreq;                                       // Option to choose the frequency in which the files are written
         int numThreads;                                     // Option to choose the no of threads to use for OpenMP
@@ -55,6 +56,7 @@ class input_parser
         void setPoissonGuess();
         void setjacobianOpt();
         void setmaxIters();
+        void setrelaxNewton();
         void setfileFreq();
         void setnumThreads();
         void setnMinParallel();
@@ -74,6 +76,7 @@ class input_parser
         int getPoissonGuess();
         int getjacobianOpt();
         int getmaxIters();
+        double getrelaxNewton();
         int getfileFreq();
         int getnumThreads();
         int getnMinParallel();
@@ -96,6 +99,7 @@ class input_parser
             setTOL_linsolver();
             setPoissonGuess();
             setmaxIters();
+            setrelaxNewton();
             setjacobianOpt();
             setfileFreq();
             setnumThreads();

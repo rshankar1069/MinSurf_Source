@@ -178,7 +178,7 @@ void input_parser::setTOL_Newton()
     }
     else
     {
-        std::cout << "++++++++++ ERROR!! Tolerance for Newton-Raphson Iterations not specified. Exiting the program ++++++++++" << std::endl;
+        std::cout << "++++++++++ ERROR!! Tolerance for Newton-Raphson iterations not specified. Exiting the program ++++++++++" << std::endl;
         exit(EXIT_FAILURE);
     }
 }
@@ -194,7 +194,7 @@ void input_parser::setTOL_linsolver()
     }
     else
     {
-        std::cout << "++++++++++ ERROR!! Tolerance for Newton-Raphson Iterations not specified. Exiting the program ++++++++++" << std::endl;
+        std::cout << "++++++++++ ERROR!! Tolerance for linear iterative solver not specified. Exiting the program ++++++++++" << std::endl;
         exit(EXIT_FAILURE);
     }
 }
@@ -230,6 +230,23 @@ void input_parser::setmaxIters()
         exit(EXIT_FAILURE);
     }
 }
+
+// Function defined to set the maximum no. of iterations of the Newton-Raphson Iterations
+void input_parser::setrelaxNewton()
+{
+    auto iterator = std::find(tokens.begin(),tokens.end(),"relaxNewton");
+    if (iterator != tokens.cend())
+    {
+        int pos = std::distance(tokens.begin(),iterator);
+        relaxNewton = std::stod(tokens[pos+1]);
+    }
+    else
+    {
+        std::cout << "++++++++++ ERROR!! Relaxation parameter for Newton iterations not specified. Exiting the program ++++++++++" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+}
+
 
 // Function defined to set the option for using various types of Jacobian for the Newton-Raphson Iterations: hardcoded, ADbyHand, ADbyDCO
 void input_parser::setjacobianOpt()
@@ -375,6 +392,11 @@ double input_parser::getTOL_linsolver() {
 // Function defined to return the maximum no. of iterations used in the Newton-Raphson Iterations
 int input_parser::getmaxIters() {
     return maxIter;
+}
+
+// Function defined to return the relaxation parameter for the Newton procedure 
+double input_parser::getrelaxNewton() {
+    return relaxNewton;
 }
 
 // Function defined to return the option set for using Poisson solution as the initial guess

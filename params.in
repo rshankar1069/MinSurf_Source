@@ -37,21 +37,28 @@ usePoissonGuess 1
 TOL_newton 1e-6
 
 # Tolerance to use for the convergence of the Newton-Raphson Iterations
-TOL_linsolver 1e-6
+TOL_linsolver 1e-6 
 
 # Maximum number of iterations for the Newton-Raphson Iterations
 maxIter 50
 
-# Option to choose the Jacobian calculation -> hardcoded (0), ADbyHand (1), ADbyDCO (2)
+# Relaxation parameter for Newton procedure
+# relaxNewton \in (0,1] 
+relaxNewton 50
+
+# Option to choose the Jacobian calculation 
+# -> hardcoded, full Jacobian (0)
+# -> ADbyHand, full Jacobian (1)
+# -> ADbyDCO, matrix-free solver (2)
 jacobianOpt 0
 
 ## File writing frequency
 # Set the value to 0 if no output is to be written
-fileFreq 1
+fileFreq 0
 
 ## OpenMP Parameters
 # No of threads for parallel execution
-nThreads 4
+nThreads 4 
 # Minimal number of gridpoints per dimension for parallel execution 
 nMinParallel 100 
 

@@ -37,14 +37,15 @@ template<class mType, class dType> class solver
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     private:
         // Private variables
+        // -----------------
         int N; // number of gridpoints in one dimension
         dType h; // grid spacing
-        int jacOption; // switch for options to determine Jacobian
-        int numThreads = 4; // number of threads for OpenMP multithreading
-        int NminParallel = 10;
+        int numThreads; // number of threads for OpenMP multithreading
+        int NminParallel; // minimum number of gridpoints for parallel exec
+        dType TOL_linsolver; // tolerance of linear iterative solvers
  
         // Private methods
-        
+        // --------------- 
         // Boundary conditions
         void applyBC( Eigen::MatrixBase<mType> &inVec );
         
@@ -83,6 +84,9 @@ template<class mType, class dType> class solver
 
 template <class mType, class dType> solver<mType, dType>::solver() {
     std::cout << "Construct solver..." << std::endl;
+    NminParallel = inputParserObj.getnMinParallel();
+    numThreads = inputParserObj.getnumThreads();
+    TOL_linsolver = inputParserObj.getTOL_linsolver();
     if ( N >= NminParallel ) {
         Eigen::initParallel();
         Eigen::setNbThreads(numThreads);
