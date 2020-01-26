@@ -10,15 +10,14 @@
 #include "cartesianGrid.h"
 
 // -------------------------------------------------------------------------------------------------
-// Setup grid parameters 
+// Setup grid parameters // @Sankar: from input file
 template <class dType, class listType>
 void cartesianGrid<dType, listType>::setupGrid() {
 
-   // Read number of gridpoints from input file
     input_parser inputParserObj;
-    int N = inputParserObj.getN(); 
-                        
-    // Set properties in grid        
+
+    int N = inputParserObj.getN(); // Currently using number of nodes along x for both directions
+                                // Can be extended for different no. of nodes along x and y later on
     setNoGridPoints(N);
     setGridSpacing();
     

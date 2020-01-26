@@ -22,10 +22,17 @@
 #include <vector>
 #include <fstream>
 #include <stdlib.h>
+#include <string>
+#include <cstdlib>
 
 #define _USE_MATH_DEFINES
 
-// Function to write the structured VTK file of the final solution for visualization
-template<class dType>
-void structuredGridWriter(std::string filename,int iterationIndex);
+// Function to write the structured VTK file for visualization
+template<class mType,class dType>
+void structuredGridWriter(int iterationIndex,mType z);
+
+// Function to write the residual
+template <class dType>
+void residualWriter(int iterationIndex, dType res);
+
 #endif //POSTPROCESS_H_INCLUDED

@@ -13,35 +13,24 @@
 #include <fstream>
 
 // -------------------------------------------------------------------------------------------------
-// Function to set the grid-related properties
+// Function to set the grid-related properties -> Sankar: extend?
 template <class mType, class dType>
-void solver<mType, dType>::setMesh( ) {
+void solver<mType, dType>::setMesh( ) { // @Sankar, maybe play here with the input
     grid.setupGrid();
     N = grid.noGridPoints;
     h = grid.gridSpacing;
 }
-
-// @Sankar, PLEASE MAKE IT AS SUCH AND DO NOT USE THE GETTERS BELOW ALL THE
-// TIME, THAT JUST REDUCES READABILITY (IN MY OPINION) 
-// -------------------------------------------------------------------------------------------------
-// // Function to set tuning parameters from input file 
-// template <class mType, class dType>
-// void solver<mType, dType>::setParams( ) {
-//     jacOption = inputParserObj.getJac;
-//     fileFreq = inputParserObj.getfileFreq();       
-// 
-// }
-
 
 // -------------------------------------------------------------------------------------------------
 // Function to apply boundary conditions - needs to be extended -> Sankar
 template <class mType, class dType>
 void solver<mType, dType>::applyBC( Eigen::MatrixBase<mType> &inVec ) {
 
+    input_parser inputParserObj;
 
     ATMSP<dType> parser;
-    
     ATMSB<dType> byteCode;
+
     std::string varnames;
 
     std::map<std::string,float> consts = inputParserObj.getConsts();
@@ -161,9 +150,9 @@ void solver<mType, dType>::getInitGuess( Eigen::MatrixBase<mType> &z ){
     Eigen::SparseMatrix<dType> poissonMatrix(N*N, N*N);
     buildPoissonMatrix(poissonMatrix);
         
-    // Solve the Poisson equation using CG (need to compare a few in the end / fine-tune) 
-    Eigen::ConjugateGradient<Eigen::SparseMatrix<dType> > cg;
-    z = cg.compute(poissonMatrix).solve(b);
+    // Solve the Poisson equation using sparse Cholesky factorization
+    Eigen::BiCGSTAB<Eigen::SparseMatrix<dType> > bicgstab;
+    z = bicgstab.compute(poissonMatrix).solve(b);
     
 }
 
@@ -248,8 +237,8 @@ void solver<mType, dType>::minSurfOperator( Eigen::MatrixBase<mType> &outVec,
 // -------------------------------------------------------------------------------------------------
 // Jacobian by hand
 template <class mType, class dType> 
-void solver<mType, dType>::minSurfJac_HardCoded( Eigen::SparseMatrix<dType> &Jacobian,
-                                                 const Eigen::MatrixBase<mType> &inVec) {
+void solver<mType, dType>::minSurfJacByHand( Eigen::SparseMatrix<dType> &Jacobian,
+                                                            const Eigen::MatrixBase<mType> &inVec) {
     typedef Eigen::Triplet<dType> triplet;
     std::vector<triplet> tripletList;
     tripletList.reserve(9*N*N);
@@ -306,150 +295,37 @@ void solver<mType, dType>::minSurfJac_HardCoded( Eigen::SparseMatrix<dType> &Jac
     [] (const dType &a, const dType &b) { return b; }); // @Chenfei, I do not really get what this does ^^
 }
 
-// -------------------------------------------------------------------------------------------------
-// Jacobian by hand
-template <class mType, class dType> 
-void solver<mType, dType>::minSurfJac_ADByHand( Eigen::SparseMatrix<dType> &Jacobian, 
-                                                Eigen::MatrixBase<mType> &outVec, 
-                                                const Eigen::MatrixBase<mType> &inVec) {
-   const dType h = 1. / ((dType)N);
-
-    typedef Eigen::Triplet<dType> triplet;
-    std::vector<triplet> tripletList;
-    tripletList.reserve(9 * N * N);
-
-    dType a1_y;
-    std::vector<dType> a1_x(9);
-
-    for (auto &i : grid.innerNodeList)
-    {
-        // forward
-        // d(...) = fd(x) // @Chenfei: can't we use the functions defined above??
-        dType dx = (inVec[i + 1] - inVec[i - 1]) / (2 * h);
-        dType dy = (inVec[i + N] - inVec[i - N]) / (2 * h);
-        dType dxx = (inVec[i + 1] - 2 * inVec[i] + inVec[i - 1]) / (h * h);
-        dType dyy = (inVec[i + N] - 2 * inVec[i] + inVec[i - N]) / (h * h);
-        dType dxy = (inVec[i + 1 + N] + inVec[i - 1 - N] - inVec[i + 1 - N] - inVec[i - 1 + N])
-                        / (4 * h * h);
-
-        // v1 = (1+z_x^2)*z_yy
-        dType v1 = (1 + pow(dx, 2)) * dyy;
-        // v2 = -2*z_x*z_y*z_xy
-        dType v2 = -2 * dx * dy * dxy;
-        // v3 = (1+z_y^2)*z_xx
-        dType v3 = (1 + pow(dy, 2)) * dxx;
-
-        outVec[i] = v1 + v2 + v3;
-
-        // reverse
-        // seed a1_y
-        a1_y = 1.;
-    
-        // reverse of y[i] = v1 + v2 + v3
-        dType a1_v1 = a1_y;
-        dType a1_v2 = a1_y;
-        dType a1_v3 = a1_y;
-
-        //reverse of v3 = (1 + pow(dy, 2)) * dxx
-        dType a1_dy = dxx * 2 * dy * a1_v3;
-        dType a1_dxx = (1 + pow(dy, 2)) * a1_v3;
-
-        //reverse v2 = -2 * dx * dy * dxy
-        dType a1_dx = -2 * dy * dxy * a1_v2;
-        a1_dy += -2 * dx * dxy * a1_v2;
-        dType a1_dxy = -2 * dx * dy * a1_v2;
-
-        //reverse of v1 = (1 + pow(dx, 2)) * dyy
-        a1_dx += dyy * 2 * dx * a1_v1;
-        dType a1_dyy = (1 + pow(dx, 2)) * a1_v1;
-
-        // reverse of d(...) = fd(x)
-        a1_x[5] = a1_dx / (2 * h);
-        a1_x[3] = a1_dx / (-2 * h);
-        a1_x[7] = a1_dy / (2 * h);
-        a1_x[1] = a1_dy / (-2 * h);
-        a1_x[5] += a1_dxx / (h * h);
-        a1_x[3] += a1_dxx / (h * h);
-        a1_x[4] = (-2) * a1_dxx / (h * h);
-        a1_x[7] += a1_dyy / (h * h);
-        a1_x[1] += a1_dyy / (h * h);
-        a1_x[4] += (-2) * a1_dyy / (h * h);
-        a1_x[8] = a1_dxy / (4 * h * h);
-        a1_x[0] = a1_dxy / (4 * h * h);
-        a1_x[2] = a1_dxy / (-4 * h * h);
-        a1_x[6] = a1_dxy / (-4 * h * h);
-
-        // store derivatives in triplets
-        tripletList.push_back(triplet(i, i - 1 - N, a1_x[0]));
-        tripletList.push_back(triplet(i, i     - N, a1_x[1]));
-        tripletList.push_back(triplet(i, i + 1 - N, a1_x[2]));
-        tripletList.push_back(triplet(i, i - 1,     a1_x[3]));
-        tripletList.push_back(triplet(i, i,         a1_x[4]));
-        tripletList.push_back(triplet(i, i + 1,     a1_x[5]));
-        tripletList.push_back(triplet(i, i - 1 + N, a1_x[6]));
-        tripletList.push_back(triplet(i, i     + N, a1_x[7]));
-        tripletList.push_back(triplet(i, i + 1 + N, a1_x[8]));
-    }
-    // Build sparse matrix from triplets
-    Jacobian.setFromTriplets(tripletList.begin(), tripletList.end());
-
-}
 
 // #################################################################################################
 // minSurf solving routine
 
 // -------------------------------------------------------------------------------------------------
 // Get residual by application of minSurf-operator
-// Function for hardcoded and ADByHand version
-// Get residual - hardcoded
 template <class mType, class dType>
-dType solver<mType, dType>::residual_HardCoded( Eigen::MatrixBase<mType> &resVec,
-                                      const Eigen::MatrixBase<mType> &solVec) {
+dType solver<mType, dType>::residual( Eigen::MatrixBase<mType> &resVec,
+                                                           const Eigen::MatrixBase<mType> &solVec) {
     // computes residual entries in resVec
     // returns norm of r
     
     // F^h(z^h) = r^h
     // r^h contains the residual, which shall go to zero, in the innerNodeList, and 
     // the boundary information on the bdryNodeList
+    
     minSurfOperator(resVec, solVec);
     //~std::cout << resVec << std::endl;     
         
     dType res = 0;
-    for(auto& i: grid.innerNodeList)
-        res += pow(resVec[i], 2);
+    for(auto& i: grid.innerNodeList) // Is there a smarter way to only compute the
+        res += pow(resVec[i], 2);    //  norm of the inner nodes?
 
     return sqrt(res);
 }
-
-// Get residual - AD by hand
-template <class mType, class dType>
-dType solver<mType, dType>::residual_ADByHand( Eigen::SparseMatrix<dType> &Jacobian, 
-                                      Eigen::MatrixBase<mType> &resVec,
-                                      const Eigen::MatrixBase<mType> &solVec) {
-    // computes residual entries in resVec
-    // returns norm of r
-    
-    // F^h(z^h) = r^h
-    // r^h contains the residual, which shall go to zero, in the innerNodeList, and 
-    // the boundary information on the bdryNodeList
-     minSurfJac_ADByHand(Jacobian, resVec, solVec);
-    //~std::cout << resVec << std::endl;     
-        
-    dType res = 0;
-    for(auto& i: grid.innerNodeList)
-        res += pow(resVec[i], 2);
-
-    return sqrt(res);
-}
-
 
 // -------------------------------------------------------------------------------------------------
-// Functions to run solver
-// Hardcoded and AD by hand versions
-
-// Run solver using hardcoded Jacobian
+// Main solver loop
 template<class mType, class dType>
-void solver<mType, dType>::runSolver_HardCoded( ) {
+void solver<mType, dType>::runSolver( ) {
+    input_parser inputParserObj;
     mType z = mType::Zero(N*N);
     
     getInitGuess(z);
@@ -461,18 +337,21 @@ void solver<mType, dType>::runSolver_HardCoded( ) {
     mType dz = mType::Zero(N*N); 
     Eigen::SparseMatrix<dType> Jacobian(N*N, N*N);
     
-    res = residual_HardCoded(resVec, z);
+    res = residual(resVec, z);
         
     std::cout << "Starting residual: " << res << std::endl;
    
-    dType omega = 1.; // Relaxation parameter for Newton-Raphson
+    dType omega = 0.85; // Relaxation parameter for Newton-Raphson
     unsigned iterationIndex = 0;
     // In case initial guess was not horrifically lucky, run Newton-Raphson
     do { 
         
         // get Jacobian
-        //~Jacobian.setZero();
-        minSurfJac_HardCoded(Jacobian, z);
+        Jacobian.setZero();
+        minSurfJacByHand(Jacobian, z);
+        //~std::cout << Jacobian << std::endl;
+        // Test for Eigenvalues of Jacobian - only test purpose, to know whether CG is a good idea or not
+        
         // dz_n = grad[F(z_n)]^-1 * F(z_n)
         // To be played with: preconditioner (MUST), 
         // initial guess (maybe inversion of the Poisson-gradient might also help, but no idea), 
@@ -485,157 +364,31 @@ void solver<mType, dType>::runSolver_HardCoded( ) {
         z -= omega*dz; 
     
         // get residual and resVec -> F(z_n)
-        res = residual_HardCoded(resVec, z);
-        iterationIndex++;
+        res = residual(resVec, z);
         
-        if( !(iterationIndex%inputParserObj.getfileFreq())) {
+        iterationIndex++;
+        if( !(iterationIndex%inputParserObj.getfileFreq()))
+        {
             // Writing the output data
-            if(inputParserObj.getfileFreq() > 0) {
-                // Writing the solution output into .vts file
-                std::ofstream file;
-                std::stringstream ss;
-                ss << "/output/output_" << iterationIndex << ".dat";
-                std::string filename = ss.str();
-                file.open(filename,std::ios::out | std::ios::trunc);
-                file << z;
-                file.close();
-                structuredGridWriter<dType>(filename,iterationIndex);
-
+            if(inputParserObj.getfileFreq() > 0)
+            {
+                // Writing the vtk files for visualization
+                structuredGridWriter<mType,dType>(iterationIndex,z);
                 // Writing the residual vs. iteration number into a csv file
-                std::ofstream resfile;
-                resfile.open("/output/residual.txt",std::ios::out | std::ios::app);
-                if(iterationIndex == 1) {
-                    resfile << "\"iteration index\"" << "," << "\"residual\"" << std::endl;
-                    resfile << iterationIndex << "," << res << std::endl;
-                }
-                else {
-                    resfile << iterationIndex << "," << res << std::endl;
-                }
-                resfile.close();
+                residualWriter<dType>(iterationIndex,res);
+
             }
             std::cout << "\tAt iteration " << iterationIndex  << " res is " << res << std::endl;
         }
     } while (res > inputParserObj.getTOL() && iterationIndex < inputParserObj.getmaxIters());
-    std::cout << "Stopped after " << iterationIndex << " iterations with a residual of "     << res << "." << std::endl;
-
+    std::cout << "Stopped after " << iterationIndex << " iterations with a residual of "
+              << res << "." << std::endl;
+    
     // Writing final output data
-    std::ofstream file;
-    std::stringstream ss;
-    ss << "/output/output_" << iterationIndex << ".dat";
-    std::string filename = ss.str();
-    file.open(filename,std::ios::out | std::ios::trunc);
-    file << z;
-    file.close();
-    structuredGridWriter<dType>(filename,iterationIndex);
+    structuredGridWriter<mType,dType>(iterationIndex,z);
 
     // Writing the residual vs. iteration number of the final solution into a csv file
-    std::ofstream resfile;
-    resfile.open("/output/residual.txt",std::ios::out | std::ios::trunc);
-    resfile << iterationIndex << "," << res << std::endl;
-    resfile.close();
-
+    residualWriter<dType>(iterationIndex,res);
 }
 
-// Run solver using AD by hand
-template<class mType, class dType>
-void solver<mType, dType>::runSolver_ADByHand( ) {
-    mType z = mType::Zero(N*N);
-    
-    getInitGuess(z);
-    //~std::cout << z << std::endl;
-    //~applyBC(z); // This should be unnecessary if getInitGuess!
-    
-    dType res;
-    mType resVec = mType::Zero(N*N);
-    mType dz = mType::Zero(N*N); 
-    Eigen::SparseMatrix<dType> Jacobian(N*N, N*N);
-    
-    res = residual_ADByHand(Jacobian, resVec, z);
-        
-    std::cout << "Starting residual: " << res << std::endl;
-   
-    dType omega = 1.; // Relaxation parameter for Newton-Raphson
-    unsigned iterationIndex = 0;
-    // In case initial guess was not horrifically lucky, run Newton-Raphson
-    do { 
-        // dz_n = grad[F(z_n)]^-1 * F(z_n)
-        // To be played with: preconditioner (MUST), 
-        // initial guess (maybe inversion of the Poisson-gradient might also help, but no idea), 
-        //     tolerance (MUST).. should not be too high, as our main goal is the result of Newton
-        Eigen::BiCGSTAB<Eigen::SparseMatrix<dType> > bicgstab;
-        bicgstab.compute(Jacobian);
-        dz = bicgstab.solve(resVec);
-
-        // z_{n+1} = z_n - dz
-        z -= omega*dz; 
-        
-        // get residual and resVec -> F(z_n)
-        res = residual_ADByHand(Jacobian, resVec, z);
-        
-        iterationIndex++;
-       
-        if( !(iterationIndex%inputParserObj.getfileFreq()) ) {
-            // Writing the output data
-            if(inputParserObj.getfileFreq() > 0) {
-                // Writing the solution output into .vts file
-                std::ofstream file;
-                std::stringstream ss;
-                ss << "/output/output_" << iterationIndex << ".dat";
-                std::string filename = ss.str();
-                file.open(filename,std::ios::out | std::ios::trunc);
-                file << z;
-                file.close();
-                structuredGridWriter<dType>(filename,iterationIndex);
-
-                // Writing the residual vs. iteration number into a csv file
-                std::ofstream resfile;
-                resfile.open("/output/residual.txt",std::ios::out | std::ios::app);
-                if(iterationIndex == 1) {
-                    resfile << "\"iteration index\"" << "," << "\"residual\"" << std::endl;
-                    resfile << iterationIndex << "," << res << std::endl;
-                }
-                else {
-                    resfile << iterationIndex << "," << res << std::endl;
-                }
-                resfile.close();
-            }
-            std::cout << "\tAt iteration " << iterationIndex  << " res is " << res << std::endl;
-        }
-    } while (res > inputParserObj.getTOL() && iterationIndex < inputParserObj.getmaxIters());
-    std::cout <<"Stopped after "<< iterationIndex <<" iterations with a residual of "<<res<<"."<<std::endl;
-
-    // Writing final output data
-    std::ofstream file;
-    std::stringstream ss;
-    ss << "/output/output_" << iterationIndex << ".dat";
-    std::string filename = ss.str();
-    file.open(filename,std::ios::out | std::ios::trunc);
-    file << z;
-    file.close();
-    structuredGridWriter<dType>(filename,iterationIndex);
-
-    // Writing the residual vs. iteration number of the final solution into a csv file
-    std::ofstream resfile;
-    resfile.open("/output/residual.txt",std::ios::out | std::ios::trunc);
-    resfile << iterationIndex << "," << res << std::endl;
-    resfile.close();
-
-}
-
-// -------------------------------------------------------------------------------------------------
-// Main solver loop
-// This needs to be adjusted --> want one big solver function with more if's, 
-// and not that much code appearing double
-template<class mType, class dType>
-void solver<mType, dType>::runSolver( ) {
-    
-    jacOption = inputParserObj.getjacOption(); // for now...
-    
-    // Choose how to run solver
-    if (jacOption == 0)
-        runSolver_HardCoded();
-    else if (jacOption == 1)
-        runSolver_ADByHand();
-
-}
 

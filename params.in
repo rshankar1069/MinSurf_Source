@@ -29,13 +29,29 @@ BC.LEFT 1
 
 # 0 -> Not use Poisson initial guess, 1 -> Use Poisson initial guess
 usePoissonGuess 0
+
 # Tolerance to use for the convergence of the Newton-Raphson Iterations
 TOL 1e-4
+
 # Maximum number of iterations for the Newton-Raphson Iterations
 maxIter 50
+
 # Option to choose the Jacobian calculation -> handcoded (0), ADbyHand (1), ADbyDCO (2)
 jacobianOpt 0
 
 ## File writing frequency
 # Set the value to 0 if no output is to be written
 fileFreq 1
+
+## OpenMP Parameters
+# No of threads for the parallel
+
+nThreads 8
+
+## Output Folder Location
+
+# Location to store the vtk files for visualization
+vtkOutLoc ../sin/vtk/
+
+# Location to store the residual text files
+resOutLoc ../sin/residual/

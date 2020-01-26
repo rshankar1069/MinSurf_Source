@@ -17,20 +17,24 @@
 #include <map>
 #include <vector>
 #include "atmsp.h"
+
 class input_parser
 {
     private:
-        int N;                                    // # of elements along x and y
-        std::string bottom,right,top,left;        // BC expressions along the edges of the domain
-        std::map<std::string,float> consts;       // Extra constants used in defining the expressions
-        std::vector<std::string> vars;            // Variables defined in the expressions
+        int N;                                              // # of elements along x and y
+        std::string bottom,right,top,left;                  // BC expressions along the edges of the domain
+        std::map<std::string,float> consts;                 // Extra constants used in defining the expressions
+        std::vector<std::string> vars;                      // Variables defined in the expressions
         std::vector<std::string> tokens;
-        std::string varnames;                     // Temporary variable to store variable names
-        double TOL;                               // Tolerance value for the Newton-Raphson Iterations
-        int usePoissonGuess;                      // Option to choose Poisson Guess for the initial condition
-        int maxIter;                              // Maximum number of iterations
-        int jacOption;                            // Option to choose the Jacobian to be used in solving the problem
-        int fileFreq;                             // Option to choose the frequency in which the files are written
+        std::string varnames;                               // Temporary variable to store variable names
+        double TOL;                                         // Tolerance value for the Newton-Raphson Iterations
+        int usePoissonGuess;                                // Option to choose Poisson Guess for the initial condition
+        int maxIter;                                        // Maximum number of iterations
+        int jacobianOpt;                                    // Option to choose the Jacobian to be used in solving the problem
+        int fileFreq;                                       // Option to choose the frequency in which the files are written
+        int noThreads;                                      // Option to choose the no of threads to use for OpenMP
+        std::string vtkOutLoc;                              // Output Location to store the vtk files for postprocessing
+        std::string resOutLoc;                              // Output Location to store the residual files for postprocessing                            
 
     public:
         // Function to read the file and initialize the mesh parameters
@@ -46,9 +50,12 @@ class input_parser
         void setVars();
         void setTOL();
         void setPoissonGuess();
-        void setjacOption();
+        void setjacobianOpt();
         void setmaxIters();
         void setfileFreq();
+        void setnoThreads();
+        void setvtkOutLoc();
+        void setresOutLoc();
         
         // Getter Function Definitions
         int getN();
@@ -60,12 +67,15 @@ class input_parser
         std::vector<std::string> getVars();
         double getTOL();
         int getPoissonGuess();
-        int getjacOption();
+        int getjacobianOpt();
         int getmaxIters();
         int getfileFreq();
+        int getnoThreads();
+        std::string getvtkOutLoc();
+        std::string getresOutLoc();
 
         // Constructer definition to call Setter Functions
-        input_parser(std::string filename="params.in")
+        input_parser(std::string filename="../params.in")
         {
             // Read the file initially
             readFile(filename);
@@ -79,8 +89,11 @@ class input_parser
             setTOL();
             setPoissonGuess();
             setmaxIters();
-            setjacOption();
+            setjacobianOpt();
             setfileFreq();
+            setnoThreads();
+            setvtkOutLoc();
+            setresOutLoc();    
         }
 };
 #endif //INPUTPARSER_H_INCLUDED
