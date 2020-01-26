@@ -183,6 +183,7 @@ void solver<mType, dType>::getInitGuess( Eigen::MatrixBase<mType> &z ){
     buildPoissonMatrix(poissonMatrix);
 
     // Solve the Poisson equation using BiCGSTAB 
+    Eigen::setNbThreads(numThreads);
     Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
     bicgstab.setTolerance(TOL_linsolver);
     z = bicgstab.compute(poissonMatrix).solve(b);
@@ -671,6 +672,7 @@ void solver<mType, dType>::runSolver_ADByHand( ) {
 // Main function to run solver dependent on choice of Jacobian
 template<class mType, class dType>
 void solver<mType, dType>::runSolver( ) {
+
     std::cout << "Run minSurf-solver with" ;
     int jacobianOpt = inputParserObj.getjacobianOpt();
     switch(jacobianOpt) {

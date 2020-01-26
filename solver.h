@@ -43,7 +43,7 @@ template<class mType, class dType> class solver
         int numThreads; // number of threads for OpenMP multithreading
         int NminParallel; // minimum number of gridpoints for parallel exec
         dType TOL_linsolver; // tolerance of linear iterative solvers
- 
+
         // Private methods
         // --------------- 
         // Boundary conditions
