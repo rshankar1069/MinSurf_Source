@@ -9,7 +9,7 @@
 #include<iostream>
 #include<stdio.h>
 #include<vector>
-#include<valarray>
+#include<numeric>
 #include<cmath>
 #include"Eigen/Eigen/Core"
 #include"Eigen/Eigen/Sparse"
@@ -17,6 +17,12 @@
 #include"inputParser.h"
 #include"cartesianGrid.h"
 #pragma once
+
+#define DCO_AUTO_SUPPORT
+#define DCO_DISABLE_AVX2_WARNING
+#include"dco_cpp/include/dco.hpp" 
+//#include<dco.hpp> 
+
 
 
 template<class mType, class dType> class solver
@@ -60,8 +66,11 @@ template<class mType, class dType> class solver
         inline dType getDyy( const Eigen::MatrixBase<mType> &inVec, const int index );
         inline dType getDxy( const Eigen::MatrixBase<mType> &inVec, const int index );
         // minSurf-Operator
-        void minSurfOperator( Eigen::MatrixBase<mType> &outVec,
+        void minSurfOp( Eigen::MatrixBase<mType> &outVec,
                         const Eigen::MatrixBase<mType> &inVec );
+        // minsurf-Operator (for STL vector)
+        template<class dcoType>
+        std::vector<dcoType> minSurfOp_Vector(const std::vector<dcoType> &inVec);
         // Jacobian of minSurf-Operator - hardcoded and AD by hand version
         void minSurfJac_HardCoded( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian,
                                const Eigen::MatrixBase<mType> &inVec);
@@ -73,11 +82,12 @@ template<class mType, class dType> class solver
                                   const Eigen::MatrixBase<mType> &solVec);
         dType residual_ADByHand( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian, 
                                  Eigen::MatrixBase<mType> &resVec,
-                                 const Eigen::MatrixBase<mType> &solVec);
-                                 
+                                 const Eigen::MatrixBase<mType> &solVec);                      
+                                         
         // Functions to run solver depending on way to determine Jacobian
         void runSolver_HardCoded( );
         void runSolver_ADByHand( );
+        void runSolver_ADbyDco( );
         
 };
 
