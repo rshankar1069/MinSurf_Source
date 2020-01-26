@@ -303,7 +303,7 @@ void solver<mType, dType>::minSurfJacByHand( Eigen::SparseMatrix<dType> &Jacobia
 // Get residual by application of minSurf-operator
 template <class mType, class dType>
 dType solver<mType, dType>::residual( Eigen::MatrixBase<mType> &resVec,
-                                                           const Eigen::MatrixBase<mType> &solVec) {
+                                      const Eigen::MatrixBase<mType> &solVec ) {
     // computes residual entries in resVec
     // returns norm of r
     
@@ -325,7 +325,6 @@ dType solver<mType, dType>::residual( Eigen::MatrixBase<mType> &resVec,
 // Main solver loop
 template<class mType, class dType>
 void solver<mType, dType>::runSolver( ) {
-    input_parser inputParserObj;
     mType z = mType::Zero(N*N);
     
     getInitGuess(z);
@@ -380,7 +379,7 @@ void solver<mType, dType>::runSolver( ) {
             }
             std::cout << "\tAt iteration " << iterationIndex  << " res is " << res << std::endl;
         }
-    } while (res > inputParserObj.getTOL() && iterationIndex < inputParserObj.getmaxIters());
+    } while (res > inputParserObj.getTOL_Newton() && iterationIndex < inputParserObj.getmaxIters());
     std::cout << "Stopped after " << iterationIndex << " iterations with a residual of "
               << res << "." << std::endl;
     

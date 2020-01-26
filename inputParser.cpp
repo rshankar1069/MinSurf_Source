@@ -168,13 +168,29 @@ void input_parser::setVars()
 }
 
 // Function defined to set the tolerance used for the convergence of the Newton-Raphson Iterations
-void input_parser::setTOL()
+void input_parser::setTOL_Newton()
 {
-    auto iterator = std::find(tokens.begin(),tokens.end(),"TOL");
+    auto iterator = std::find(tokens.begin(),tokens.end(),"TOL_newton");
     if (iterator != tokens.cend())
     {
         int pos = std::distance(tokens.begin(),iterator);
-        TOL = std::stod(tokens[pos+1]);
+        TOL_Newton = std::stod(tokens[pos+1]);
+    }
+    else
+    {
+        std::cout << "++++++++++ ERROR!! Tolerance for Newton-Raphson Iterations not specified. Exiting the program ++++++++++" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+}
+
+// Function defined to set the tolerance used for the convergence of the respective linear solver 
+void input_parser::setTOL_linsolver()
+{
+    auto iterator = std::find(tokens.begin(),tokens.end(),"TOL_linsolver");
+    if (iterator != tokens.cend())
+    {
+        int pos = std::distance(tokens.begin(),iterator);
+        TOL_linsolver = std::stod(tokens[pos+1]);
     }
     else
     {
@@ -248,13 +264,29 @@ void input_parser::setfileFreq()
 }
 
 // Function to set the option for the no of threads to be used for OpenMP parallelization
-void input_parser::setnoThreads()
+void input_parser::setnumThreads()
 {
     auto iterator = std::find(tokens.begin(),tokens.end(),"nThreads");
     if (iterator != tokens.cend())
     {
         int pos = std::distance(tokens.begin(),iterator);
-        noThreads = std::stoi(tokens[pos+1]);
+        numThreads = std::stoi(tokens[pos+1]);
+    }
+    else
+    {
+        std::cout << "++++++++++ ERROR!! Option for the no of threads for parallel run not specified. Exiting the program ++++++++++" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+}
+
+// Function to set the option for the no of threads to be used for OpenMP parallelization
+void input_parser::setnMinParallel()
+{
+    auto iterator = std::find(tokens.begin(),tokens.end(),"nMinParallel");
+    if (iterator != tokens.cend())
+    {
+        int pos = std::distance(tokens.begin(),iterator);
+        nMinParallel = std::stoi(tokens[pos+1]);
     }
     else
     {
@@ -296,91 +328,86 @@ void input_parser::setresOutLoc()
 }
 
 // Function defined to return the no. of elements along x and y directions of the mesh
-int input_parser::getN()
-{
+int input_parser::getN() {
     return N;
 }
 
 // Function defined to return the boundary condition specified at the "bottom" of the unit square domain
-std::string input_parser::getBCBottom()
-{
+std::string input_parser::getBCBottom() {
     return bottom;
 }
 
 // Function defined to return the boundary condition specified at the "right" of the unit square domain
-std::string input_parser::getBCRight()
-{
+std::string input_parser::getBCRight() {
     return right;
 }
 
 // Function defined to return the boundary condition specified at the "top" of the unit square domain
-std::string input_parser::getBCTop()
-{
+std::string input_parser::getBCTop() {
     return top;
 }
 
 // Function defined to return the boundary condition specified at the "left" of the unit square domain
-std::string input_parser::getBCLeft()
-{
+std::string input_parser::getBCLeft() {
     return left;
 }
 
 // Function defined to return the constants used in the expressions for boundary conditions
-std::map<std::string,float> input_parser::getConsts()
-{
+std::map<std::string,float> input_parser::getConsts() {
     return consts;
 }
 
 // Function defined to return the variables used in the expressions for boundary conditions
-std::vector<std::string> input_parser::getVars()
-{
+std::vector<std::string> input_parser::getVars() {
     return vars;
 }
 
 // Function defined to return the tolerance used in the Newton-Raphson Iterations
-double input_parser::getTOL()
-{
-    return TOL;
+double input_parser::getTOL_Newton() {
+    return TOL_Newton;
+}
+
+// Function defined to return the tolerance used in the linear iterative solver
+double input_parser::getTOL_linsolver() {
+    return TOL_linsolver;
 }
 
 // Function defined to return the maximum no. of iterations used in the Newton-Raphson Iterations
-int input_parser::getmaxIters()
-{
+int input_parser::getmaxIters() {
     return maxIter;
 }
 
 // Function defined to return the option set for using Poisson solution as the initial guess
-int input_parser::getPoissonGuess()
-{
+int input_parser::getPoissonGuess() {
     return usePoissonGuess;
 }
 
 // Function defined to return the option set for Jacobian to be used for the Newton-Raphson Iterations
-int input_parser::getjacobianOpt()
-{
+int input_parser::getjacobianOpt() {
     return jacobianOpt;
 }
 
 // Function defined to return the value of frequency at which the output is written
-int input_parser::getfileFreq()
-{
+int input_parser::getfileFreq() {
     return fileFreq;
 }
 
 // Function defined to return the no of threads to be used for parallel execution of the program
-int input_parser::getnoThreads()
-{
-    return noThreads;
+int input_parser::getnumThreads() {
+    return numThreads;
+}
+
+// Function defined to return the no of threads to be used for parallel execution of the program
+int input_parser::getnMinParallel() {
+    return nMinParallel;
 }
 
 // Function defined to return the vtk file output location
-std::string input_parser::getvtkOutLoc()
-{
+std::string input_parser::getvtkOutLoc() {
     return vtkOutLoc;
 }
 
 // Function defined to return the residual file output location
-std::string input_parser::getresOutLoc()
-{
+std::string input_parser::getresOutLoc() {
     return resOutLoc;
 }

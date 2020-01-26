@@ -32,6 +32,7 @@ template<class mType, class dType> class solver
         ~solver();
         
         cartesianGrid<dType, listType> grid;
+        input_parser inputParserObj;
         
         void setMesh( );
         void runSolver( );
@@ -58,7 +59,6 @@ template<class mType, class dType> class solver
         // Jacobian of minSurf-Operator
         void minSurfJacByHand( Eigen::SparseMatrix<dType> &Jacobian,
                                                             const Eigen::MatrixBase<mType> &inVec);
-        //~void minSurfJacByDCO @Chenfei           
         // Residual function
         dType residual( Eigen::MatrixBase<mType> &resVec, const Eigen::MatrixBase<mType> &solVec);
         
