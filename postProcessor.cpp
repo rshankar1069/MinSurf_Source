@@ -1,6 +1,6 @@
 /*  Simulation Sciences Laboratory
  *  WS 2019/20
- *  Chenfei Fan, Praveen Mishra, Sankarasubramanian Ragunathan, Philipp Schleich
+ *  Chenfei Fan, Praveen Mishra, Sankrarasubramanian Ragunathan, Philipp Schleich
  *  Project 1 - "Minimal Surfaces"
  *
  *  Post-processing class
@@ -8,20 +8,33 @@
 
 #include "postProcessor.h"
 
-template<typename dType>
-void structuredGridWriter()
+// Function to write the structured VTK file of the final solution for visualization
+template<class mType,class dType>
+void structuredGridWriter(int iterationIndex, mType z)
 {
-    // Reading the output file to process the data into .vtk format
-    std::ifstream file;
-    file.open("./results/output.dat");
-
     // Input parser object to get the number of nodes
     input_parser inputParserObj;
     int N = inputParserObj.getN();
 
+    // Writing the solution output into .vts file
+    std::stringstream ss,dir;
+    dir << "mkdir -p " << inputParserObj.getvtkOutLoc();
+    system(dir.str().c_str());
+    ss << inputParserObj.getvtkOutLoc() << "vtk" << iterationIndex << ".dat";
+    std::string filename = ss.str();
+
+    std::ofstream file;
+    file.open(filename,std::ios::out | std::ios::trunc);
+    file << z;
+    file.close();
+
+    // Reading the output file to process the data into .vtk format
+    std::ifstream vtkf;
+    vtkf.open(filename);
+
     dType h = 1.0/N;
 
-    if(!file.is_open())
+    if(!vtkf.is_open())
     {
         std::cout << "++++++++++ Error in opening the file !! Failed to post-process the data ++++++++++" << std::endl;
         exit(EXIT_FAILURE);
@@ -31,7 +44,7 @@ void structuredGridWriter()
         // Storing the output data in a vector
         std::vector<dType> data;
         std::string str;
-        while (std::getline(file,str))
+        while (std::getline(vtkf,str))
         {
             if(str.size()>0)
                 data.push_back(std::stod(str));
@@ -57,8 +70,39 @@ void structuredGridWriter()
         // Write file
         vtkSmartPointer<vtkXMLStructuredGridWriter> writer =
             vtkSmartPointer<vtkXMLStructuredGridWriter>::New();
-        writer->SetFileName("./results/output.vts");
+        
+        std::stringstream vtkfile;
+        vtkfile << inputParserObj.getvtkOutLoc() << "vtk_" << iterationIndex << ".vts";
+        writer->SetFileName(vtkfile.str().c_str());
         writer->SetInputData(structuredGrid);
         writer->Write();
     }
+}
+
+// Function defined to write the residual values into a csv file
+template <class dType>
+void residualWriter(int iterationIndex, dType res)
+{
+    input_parser inputParserObj;
+    int N = inputParserObj.getN();
+
+    std::stringstream ss,dir;
+    dir << "mkdir -p " << inputParserObj.getresOutLoc();
+    system(dir.str().c_str());
+    
+    ss << inputParserObj.getresOutLoc() << "residual" << ".dat";
+    std::string filename = ss.str();
+
+    std::ofstream resfile;
+    resfile.open(filename,std::ios::out | std::ios::app);
+    if(iterationIndex == 1)
+    {
+        resfile << "\"Iteration Index\"" << "," << "\"Residual\"" << std::endl;
+        resfile << iterationIndex << "," << res << std::endl;
+    }
+    else
+    {
+        resfile << iterationIndex << "," << res << std::endl;
+    }
+    resfile.close();
 }

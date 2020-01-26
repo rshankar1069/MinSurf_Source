@@ -1,6 +1,6 @@
 /*  Simulation Sciences Laboratory
  *  WS 2019/20
- *  Chenfei Fan, Praveen Mishra, Sankarasubramanian Ragunathan, Philipp Schleich
+ *  Chenfei Fan, Praveen Mishra, Sankrarasubramanian Ragunathan, Philipp Schleich
  *  Project 1 - "Minimal Surfaces"
  *
  *  Solver class
@@ -9,6 +9,7 @@
 #include "solver.h"
 #include "inputParser.h"
 #include "atmsp.h"
+#include "postProcessor.h"
 #include <fstream>
 
 // -------------------------------------------------------------------------------------------------
@@ -27,8 +28,8 @@ void solver<mType, dType>::applyBC( Eigen::MatrixBase<mType> &inVec ) {
 
     input_parser inputParserObj;
 
-    ATMSP<float> parser;
-    ATMSB<float> byteCode;
+    ATMSP<dType> parser;
+    ATMSB<dType> byteCode;
 
     std::string varnames;
 
@@ -472,12 +473,9 @@ void solver<mType, dType>::minSurfJac_ADByHand( Eigen::SparseMatrix<dType, Eigen
 
 // -------------------------------------------------------------------------------------------------
 // Get residual by application of minSurf-operator
-// Function for hardcoded and ADByHand version
-
-// Get residual - hardcoded
 template <class mType, class dType>
 dType solver<mType, dType>::residual_HardCoded( Eigen::MatrixBase<mType> &resVec,
-                                      const Eigen::MatrixBase<mType> &solVec) {
+                                      const Eigen::MatrixBase<mType> &solVec ) {
     // computes residual entries in resVec
     // returns norm of r
     
@@ -485,7 +483,6 @@ dType solver<mType, dType>::residual_HardCoded( Eigen::MatrixBase<mType> &resVec
     // r^h contains the residual, which shall go to zero, in the innerNodeList, and 
     // the boundary information on the bdryNodeList
     minSurfOperator(resVec, solVec);
-    //~std::cout << resVec << std::endl;     
         
     dType res = 0;
     int length = (int) grid.innerNodeList.size();
@@ -515,7 +512,6 @@ dType solver<mType, dType>::residual_ADByHand( Eigen::SparseMatrix<dType, Eigen:
     #pragma omp parallel for reduction(+:res) if(N>=5*NminParallel)
     for(int index=0; index<length; index++)
         res += pow(resVec[grid.innerNodeList[index]], 2);
-
     return sqrt(res);
 }
 
@@ -527,56 +523,66 @@ dType solver<mType, dType>::residual_ADByHand( Eigen::SparseMatrix<dType, Eigen:
 // Run solver using hardcoded Jacobian
 template<class mType, class dType>
 void solver<mType, dType>::runSolver_HardCoded( ) {
-    mType z = mType::Zero(N*N);
+   mType z = mType::Zero(N*N);
     
-    getInitGuess(z);
-    //~std::cout << z << std::endl;
-    //~applyBC(z); // This should be unnecessary if getInitGuess!
+   getInitGuess(z);
+   //~std::cout << z << std::endl;
+   //~applyBC(z); // This should be unnecessary if getInitGuess!
    
-    dType res;
-    mType resVec = mType::Zero(N*N);
-    mType dz = mType::Zero(N*N); 
-    Eigen::SparseMatrix<dType, Eigen::RowMajor> Jacobian(N*N, N*N);
+   dType res;
+   mType resVec = mType::Zero(N*N);
+   mType dz = mType::Zero(N*N); 
+   Eigen::SparseMatrix<dType, Eigen::RowMajor> Jacobian(N*N, N*N);
    
-    res = residual_HardCoded(resVec, z);
-        
-    std::cout << "Starting residual: " << res << std::endl;
+   res = residual_HardCoded(resVec, z);
+      
+   std::cout << "Starting residual: " << res << std::endl;
    
-    dType omega = 0.85; // Relaxation parameter for Newton-Raphson
-    unsigned iterationIndex = 0;
-    // In case initial guess was not horrifically lucky, run Newton-Raphson
-    do { 
-        // get Jacobian
-        minSurfJac_HardCoded(Jacobian, z);
-        
-        // dz_n = grad[F(z_n)]^-1 * F(z_n)
-        // To be played with: preconditioner (MUST), 
-        // initial guess (maybe inversion of the Poisson-gradient might also help, but no idea), 
-        //     tolerance (MUST).. should not be too high, as our main goal is the result of Newton
-        Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
-        std::cout<< "nThr:: " << Eigen::nbThreads(); 
-        bicgstab.setTolerance(1e-8);
-        bicgstab.compute(Jacobian);
-        dz = bicgstab.solve(resVec);
+   dType omega = 0.85; // Relaxation parameter for Newton-Raphson
+   unsigned iterationIndex = 0;
+   // In case initial guess was not horrifically lucky, run Newton-Raphson
+   do { 
+       
+       // get Jacobian
+       minSurfJac_HardCoded(Jacobian, z);
+      
+       // dz_n = grad[F(z_n)]^-1 * F(z_n)
+       // To be played with: preconditioner (MUST), 
+       // initial guess (maybe inversion of the Poisson-gradient might also help, but no idea), 
+       //     tolerance (MUST).. should not be too high, as our main goal is the result of Newton
+       Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
+       std::cout<< "nThr:: " << Eigen::nbThreads(); 
+       bicgstab.setTolerance(1e-8);
+       bicgstab.compute(Jacobian);
+       dz = bicgstab.solve(resVec);
 
-        // z_{n+1} = z_n - dz
-        z -= omega*dz; 
+       // z_{n+1} = z_n - dz
+       z -= omega*dz; 
+   
+       // get residual and resVec -> F(z_n)
+       res = residual_HardCoded(resVec, z);
+       
+       iterationIndex++;
+       if( !(iterationIndex%inputParserObj.getfileFreq())) {
+           // Writing the output data
+           if(inputParserObj.getfileFreq() > 0) {
+               // Writing the vtk files for visualization
+               structuredGridWriter<mType,dType>(iterationIndex,z);
+               // Writing the residual vs. iteration number into a csv file
+               residualWriter<dType>(iterationIndex,res);
+
+           }
+           std::cout << "\tAt iteration " << iterationIndex  << " res is " << res << std::endl;
+       }
+   } while (res > inputParserObj.getTOL_Newton() && iterationIndex < inputParserObj.getmaxIters());
+   std::cout << "Stopped after " << iterationIndex << " iterations with a residual of "
+             << res << "." << std::endl;
     
-        // get residual and resVec -> F(z_n)
-        res = residual_HardCoded(resVec, z);
-        
-        iterationIndex++;
-        if( !(iterationIndex%1))
-            std::cout << "\tAt iteration " << iterationIndex  << " res is " << res << std::endl;
-    } while (res > 1.e-6 && iterationIndex < 100);
-    std::cout << "Stopped after " << iterationIndex << " iterations with a residual of "
-              << res << "." << std::endl;
+    // Writing final output data
+    structuredGridWriter<mType,dType>(iterationIndex,z);
 
-    std::ofstream file;
-    file.open("./results/output.dat",std::ios::out | std::ios::trunc);
-    file << z;
-    file.close();
-
+    // Writing the residual vs. iteration number of the final solution into a csv file
+    residualWriter<dType>(iterationIndex,res);
 
 }
 
@@ -631,27 +637,12 @@ void solver<mType, dType>::runSolver_ADByHand( ) {
     std::cout << "Stopped after " << iterationIndex << " iterations with a residual of "
               << res << "." << std::endl;
 
- //   std::ofstream file;
- //   file.open("./results/output.dat",std::ios::out | std::ios::trunc);
- //   file << z;
- //   file.close();
+    // Writing final output data
+    structuredGridWriter<mType,dType>(iterationIndex,z);
 
-
-   //~std::cout << z << std::endl;
-}
-
-// -------------------------------------------------------------------------------------------------
-// Main solver loop
-template<class mType, class dType>
-void solver<mType, dType>::runSolver( ) {
-    // Determine jacOption from input-file @Sankar
-    // ....
-    jacOption = 1; // for now...
-    
-    // Choose how to run solver
-    if (jacOption == 0)
-        runSolver_HardCoded();
-    else if (jacOption == 1)
-        runSolver_ADByHand();
+    // Writing the residual vs. iteration number of the final solution into a csv file
+    residualWriter<dType>(iterationIndex,res);
 
 }
+
+

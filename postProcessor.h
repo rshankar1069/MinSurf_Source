@@ -1,6 +1,6 @@
 /*  Simulation Sciences Laboratory
  *  WS 2019/20
- *  Chenfei Fan, Praveen Mishra, Sankarasubramanian Ragunathan, Philipp Schleich
+ *  Chenfei Fan, Praveen Mishra, Sankrarasubramanian Ragunathan, Philipp Schleich
  *  Project 1 - "Minimal Surfaces"
  *
  *  Post-processing class -- header file
@@ -22,9 +22,17 @@
 #include <vector>
 #include <fstream>
 #include <stdlib.h>
+#include <string>
+#include <cstdlib>
 
 #define _USE_MATH_DEFINES
 
-void structuredGridWriter();
+// Function to write the structured VTK file for visualization
+template<class mType,class dType>
+void structuredGridWriter(int iterationIndex,mType z);
+
+// Function to write the residual
+template <class dType>
+void residualWriter(int iterationIndex, dType res);
 
 #endif //POSTPROCESS_H_INCLUDED

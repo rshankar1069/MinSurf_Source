@@ -1,6 +1,6 @@
 /*  Simulation Sciences Laboratory
  *  WS 2019/20
- *  Chenfei Fan, Praveen Mishra, Sankarasubramanian Ragunathan, Philipp Schleich
+ *  Chenfei Fan, Praveen Mishra, Sankrarasubramanian Ragunathan, Philipp Schleich
  *  Project 1 - "Minimal Surfaces"
  *
  *  Solver class -- header file
@@ -11,12 +11,10 @@
 #include<vector>
 #include<valarray>
 #include<cmath>
+#include"Eigen/Eigen/Core"
 #include"Eigen/Eigen/Sparse"
-#include"Eigen/Eigen/Eigenvalues"
-#include"Eigen/Eigen/SparseLU"
-#include"Eigen/Eigen/SparseCholesky"
 #include"Eigen/Eigen/IterativeLinearSolvers"
-
+#include"inputParser.h"
 #include"cartesianGrid.h"
 #pragma once
 
@@ -32,13 +30,14 @@ template<class mType, class dType> class solver
         ~solver();
         
         cartesianGrid<dType, listType> grid;
+        input_parser inputParserObj;
         
         void setMesh( );
         void runSolver( );
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     private:
         // Private variables
-        int N; // number of gridpoints
+        int N; // number of gridpoints in one dimension
         dType h; // grid spacing
         int jacOption; // switch for options to determine Jacobian
         int numThreads = 4; // number of threads for OpenMP multithreading
@@ -59,7 +58,6 @@ template<class mType, class dType> class solver
         inline dType getDxx( const Eigen::MatrixBase<mType> &inVec, const int index );
         inline dType getDyy( const Eigen::MatrixBase<mType> &inVec, const int index );
         inline dType getDxy( const Eigen::MatrixBase<mType> &inVec, const int index );
-        
         // minSurf-Operator
         void minSurfOperator( Eigen::MatrixBase<mType> &outVec,
                         const Eigen::MatrixBase<mType> &inVec );

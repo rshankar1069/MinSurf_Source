@@ -27,9 +27,17 @@ class input_parser
         std::vector<std::string> vars;                      // Variables defined in the expressions
         std::vector<std::string> tokens;
         std::string varnames;                               // Temporary variable to store variable names
-        
-        ATMSP<float> parser;                                // Expression parser for parsing the boundary conditions
-        ATMSB<float> byteCode;                              // Expression parser respresented in terms of byte code
+        double TOL_Newton;                                  // Tolerance value for the Newton-Raphson Iterations
+        double TOL_linsolver;                               // Tolerance value for linear solver 
+        int usePoissonGuess;                                // Option to choose Poisson Guess for the initial condition
+        int maxIter;                                        // Maximum number of iterations
+        int jacobianOpt;                                    // Option to choose the Jacobian to be used in solving the problem
+        int fileFreq;                                       // Option to choose the frequency in which the files are written
+        int numThreads;                                     // Option to choose the no of threads to use for OpenMP
+        int nMinParallel;                                   // Option to choose minimal number of gridpoints to execute in parallel 
+        std::string vtkOutLoc;                              // Output Location to store the vtk files for postprocessing
+        std::string resOutLoc;                              // Output Location to store the residual files for postprocessing                            
+
     public:
         // Function to read the file and initialize the mesh parameters
         void readFile(std::string filename);
@@ -42,6 +50,16 @@ class input_parser
         void setBCLeft();
         void setConsts();
         void setVars();
+        void setTOL_Newton();
+        void setTOL_linsolver();
+        void setPoissonGuess();
+        void setjacobianOpt();
+        void setmaxIters();
+        void setfileFreq();
+        void setnumThreads();
+        void setnMinParallel();
+        void setvtkOutLoc();
+        void setresOutLoc();
         
         // Getter Function Definitions
         int getN();
@@ -51,12 +69,21 @@ class input_parser
         std::string getBCLeft();
         std::map<std::string,float> getConsts();
         std::vector<std::string> getVars();
+        double getTOL_Newton();
+        double getTOL_linsolver();
+        int getPoissonGuess();
+        int getjacobianOpt();
+        int getmaxIters();
+        int getfileFreq();
+        int getnumThreads();
+        int getnMinParallel();
+        std::string getvtkOutLoc();
+        std::string getresOutLoc();
 
         // Constructer definition to call Setter Functions
         input_parser(std::string filename="params.in")
         {
             // Read the file initially
-            #pragma once
             readFile(filename);
             setN();
             setBCBottom();
@@ -65,6 +92,16 @@ class input_parser
             setBCLeft();
             setConsts();
             setVars();
+            setTOL_Newton();
+            setTOL_linsolver();
+            setPoissonGuess();
+            setmaxIters();
+            setjacobianOpt();
+            setfileFreq();
+            setnumThreads();
+            setnMinParallel();
+            setvtkOutLoc();
+            setresOutLoc();    
         }
 };
 #endif //INPUTPARSER_H_INCLUDED
