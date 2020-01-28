@@ -590,10 +590,12 @@ void solver<mType, dType>::runSolver_ADbyDco( ) {
             rho_new = std::inner_product(r0.begin(), r0.end(), r.begin(), 0.0);
             b = (rho_new/rho) * (a/w);
             rho = rho_new;
-            for (auto& i: grid.innerNodeList) p[i] = r[i] + b*(p[i]-w*v[i]);
-            for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = p[i];
+            for (auto& i: grid.innerNodeList) {
+                p[i] = r[i] + b*(p[i]-w*v[i]);
+                dco::derivative(zt[i]) = p[i];
+            }
             yt = f(zt);
-            v = dco::derivative(yt);
+            v = dco::derivative(yt); // v = Ap
             a = rho / std::inner_product(r0.begin(), r0.end(), v.begin(), 0.0);
             for (auto& i: grid.innerNodeList) {
                 dz[i] += a*p[i];
@@ -608,7 +610,7 @@ void solver<mType, dType>::runSolver_ADbyDco( ) {
             res1 = std::sqrt(res1);
             if (res1 < 1.e-6) break;
             
-            for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = s[i];
+            for (auto& i: grid.innerNodeList) dco::derivative(zt[i]) = s[i];
             yt = f(zt);
             t = dco::derivative(yt);
             w = std::inner_product(t.begin(), t.end(), s.begin(), 0.0) / \
