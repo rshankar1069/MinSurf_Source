@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.3 FATAL_ERROR)
 project(minSurf)
 
 set(CXX_STANDARD 11)
+include_directories(./dco_cpp/include)
 
 ## Find VTK
 find_package(VTK COMPONENTS 
@@ -24,16 +25,8 @@ if (OPENMP_FOUND)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
-
-## Link DCO
-include_directories(DCO_LIB ${dco_cpp/lib})
-include_directories(DCO_INC ${dco_cpp/include})
-
 ## General compile options
-add_compile_options( -g -O3  -ldcoc )
-
-
-
+add_compile_options(-Ofast -march=native)
 
 ## Link VTK
 message (STATUS "VTK_VERSION: ${VTK_VERSION}")
@@ -42,19 +35,14 @@ if (VTK_VERSION VERSION_LESS "8.90.0")
   # old system
   include(${VTK_USE_FILE})
   add_executable(minSurf minSurf.cpp )
-  target_include_directories(minSurf PRIVATE ${dco_cpp/include})
-  target_link_libraries(minSurf PRIVATE ${VTK_LIBRARIES}
-                                        ${dco_cpp/lib})
+  target_link_libraries(minSurf PRIVATE ${VTK_LIBRARIES} ${CMAKE_SOURCE_DIR}/dco_cpp/lib/libdcoc.a)
 else ()
   # include all components
   add_executable(minSurf minSurf.cpp )
-  target_include_directories(minSurf PRIVATE ${dco_cpp/include})
-  target_link_libraries(minSurf PRIVATE ${VTK_LIBRARIES}
-                                        ${dco_cpp/lib})
+  target_link_libraries(minSurf PRIVATE ${VTK_LIBRARIES} ${CMAKE_SOURCE_DIR}/dco_cpp/lib/libdcoc.a)
   # vtk_module_autoinit is needed
   vtk_module_autoinit(
     TARGETS minSurf
     MODULES ${VTK_LIBRARIES}
     )
 endif () 
-
