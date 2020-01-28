@@ -539,6 +539,7 @@ dType solver<mType, dType>::residual_ADByHand( Eigen::SparseMatrix<dType, Eigen:
 // Run solver using hardcoded Jacobian
 template<class mType, class dType>
 void solver<mType, dType>::runSolver_HardCoded( ) {
+
    mType z = mType::Zero(N*N);
    
  
@@ -688,138 +689,165 @@ void solver<mType, dType>::runSolver_ADByHand( ) {
 template<class mType, class dType>
 void solver<mType, dType>::runSolver_ADbyDco( ) {
 
-    mType mz = mType::Zero(N*N);
-    getInitGuess(mz);
+   mType mz = mType::Zero(N*N);
+   std::cout << "Chose to run";
+   if (inputParserObj.getPoissonGuess()) {
+       std::cout << " with non-trivial initial guess." << std::endl;
+       getInitGuess(mz); 
+   }
+   else {
+       std::cout << " with trivial initial guess." << std::endl;
+       applyBC(mz);
+   }
 
-    std::vector<dType> z(N*N);
-    for (int i=0; i<N*N; i++)
-        z[i] = mz[i];
+   std::vector<dType> z(N*N);
+   for (int i=0; i<N*N; i++)
+       z[i] = mz[i];
 
-    typedef typename dco::gt1s<dType>::type ADtype;
-    std::vector<ADtype> yt;
-    unsigned iterationIndex = 0;
+   typedef typename dco::gt1s<dType>::type ADtype;
+   std::vector<ADtype> yt;
+   unsigned iterationIndex = 0;
 
-    // CG solver -- maybe reuse if we use a switch "symmetric"
-    /* dType a, b, r2, r2old, res;
-    std::vector<dType> dz(N*N, 0.0), dy, p(N*N, 0.0), r;
-    do {
-        // initialise vector r
-        std::vector<ADtype> zt(std::begin(z), std::end(z));
-        for (auto& i: grid.innerNodeList)
-            dco::derivative(zt)[i] = dz[i]; // init z^(1) = dz
-        yt = minSurfOp_Vector(zt); // (y, y^(1)) = F^(1)(x, x^(1));
-        for (auto& i: grid.innerNodeList)
-            p[i] = -1.0*dco::value(yt)[i]-1.0*dco::derivative(yt)[i];
-        r = p;
+   // CG solver -- maybe reuse if we use a switch "symmetric"
+   /* dType a, b, r2, r2old, res;
+   std::vector<dType> dz(N*N, 0.0), dy, p(N*N, 0.0), r;
+   do {
+       // initialise vector r
+       std::vector<ADtype> zt(std::begin(z), std::end(z));
+       for (auto& i: grid.innerNodeList)
+           dco::derivative(zt)[i] = dz[i]; // init z^(1) = dz
+       yt = minSurfOp_Vector(zt); // (y, y^(1)) = F^(1)(x, x^(1));
+       for (auto& i: grid.innerNodeList)
+           p[i] = -1.0*dco::value(yt)[i]-1.0*dco::derivative(yt)[i];
+       r = p;
 
-        // calculate residual
-        res = 0;
-        for (auto& i: grid.innerNodeList)
-            res += pow(dco::value(yt)[i], 2);
-        res = std::sqrt(res);
-        
-        // initiailise |r|^2
-        r2 = std::inner_product(r.begin(), r.end(), r.begin(), 0.0);
-        r2old = r2;
+       // calculate residual
+       res = 0;
+       for (auto& i: grid.innerNodeList)
+           res += pow(dco::value(yt)[i], 2);
+       res = std::sqrt(res);
+       
+       // initiailise |r|^2
+       r2 = std::inner_product(r.begin(), r.end(), r.begin(), 0.0);
+       r2old = r2;
 
-        // matrix solver (CG)
-        while (r2 > 1.e-16) {
-            for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = p[i];
-            yt = f(zt);
-            std::vector<dType> dy = dco::derivative(yt);
-            a = r2old / std::inner_product(p.begin(), p.end(), dy.begin(), 0.0); // a = (r*r)/(p*y^(1))
-            for (auto& i: grid.innerNodeList) {
-                dz[i] += a*p[i]; // dz += a*p
-                r[i] -= a*dy[i]; // r -= a*y^(1)
-            }
-            r2 = std::inner_product(r.begin(), r.end(), r.begin(), 0.0); // (r*r)
-            b = r2/r2old;
-            r2old = r2;
-            for (auto& i: grid.innerNodeList) p[i] = r[i] + b*p[i]; // p = r+b*p
-        }
-    
-        // update z
-        for (auto& i: grid.innerNodeList)
-            z[i] += dz[i];
+       // matrix solver (CG)
+       while (r2 > 1.e-16) {
+           for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = p[i];
+           yt = f(zt);
+           std::vector<dType> dy = dco::derivative(yt);
+           a = r2old / std::inner_product(p.begin(), p.end(), dy.begin(), 0.0); // a = (r*r)/(p*y^(1))
+           for (auto& i: grid.innerNodeList) {
+               dz[i] += a*p[i]; // dz += a*p
+               r[i] -= a*dy[i]; // r -= a*y^(1)
+           }
+           r2 = std::inner_product(r.begin(), r.end(), r.begin(), 0.0); // (r*r)
+           b = r2/r2old;
+           r2old = r2;
+           for (auto& i: grid.innerNodeList) p[i] = r[i] + b*p[i]; // p = r+b*p
+       }
+   
+       // update z
+       for (auto& i: grid.innerNodeList)
+           z[i] += dz[i];
 
-        if( !(iterationIndex%1))
-            std::cout << "\tAt iteration " << iterationIndex  << " res is " << res << std::endl;
-        iterationIndex++;
-    } while (res > 1.e-6 && iterationIndex < 100); */
+       if( !(iterationIndex%1))
+           std::cout << "\tAt iteration " << iterationIndex  << " res is " << res << std::endl;
+       iterationIndex++;
+   } while (res > 1.e-6 && iterationIndex < 100); */
 
-    // BiCGSTAB solver
-    dType rho, rho_new, a, b, w, res, res1;
-    std::vector<dType> dz(N*N, 0.0), v(N*N, 0.0), p(N*N, 0.0), r(N*N, 0.0),\
-    s(N*N, 0.0), t(N*N, 0.0), r0(N*N, 0.0), z1(N*N, 0.0), y(N*N, 0.0);
-    while (iterationIndex < 100) {
-        
-        std::vector<ADtype> zt(std::begin(z), std::end(z));
-        for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = dz[i];
-        yt = minSurfOp_Vector(zt); // (y, y^(1)) = F^(1)(x, x^(1));
+   // BiCGSTAB solver
+   dType rho, rho_new, a, b, w, res, res1;
+   std::vector<dType> dz(N*N, 0.0), v(N*N, 0.0), p(N*N, 0.0), r(N*N, 0.0),\
+   s(N*N, 0.0), t(N*N, 0.0), r0(N*N, 0.0), z1(N*N, 0.0), y(N*N, 0.0);
+   while (iterationIndex < 100) {
+       
+       std::vector<ADtype> zt(std::begin(z), std::end(z));
+       for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = dz[i];
+       yt = minSurfOp_Vector(zt); // (y, y^(1)) = F^(1)(x, x^(1));
 
-        // calculate residual
-        res = 0;
-        for (auto& i: grid.innerNodeList)
-            res += pow(dco::value(yt)[i], 2);
-        res = std::sqrt(res);
-        if (res < 1.e-6) break;
+       // calculate residual
+       res = 0;
+       for (auto& i: grid.innerNodeList)
+           res += pow(dco::value(yt)[i], 2);
+       res = std::sqrt(res);
+       if (res < inputParserObj.getTOL_Newton()) break;
 
-        // initialisation
-        for (auto& i: grid.innerNodeList)
-            p[i] = -1.0*dco::value(yt)[i]-1.0*dco::derivative(yt)[i];
-        r = p; r0 = r; std::vector<dType> p(N*N, 0.0); rho = 1; a = 1; w = 1;
+       // initialisation
+       for (auto& i: grid.innerNodeList)
+           p[i] = -1.0*dco::value(yt)[i]-1.0*dco::derivative(yt)[i];
+       r = p; r0 = r; std::vector<dType> p(N*N, 0.0); rho = 1; a = 1; w = 1;
 
-        // matrix solver (BiCGSTAB)
-        while (std::inner_product(r.begin(), r.end(), r.begin(), 0.0) > 1.e-16) {
-            rho_new = std::inner_product(r0.begin(), r0.end(), r.begin(), 0.0);
-            b = (rho_new/rho) * (a/w);
-            rho = rho_new;
-            for (auto& i: grid.innerNodeList) p[i] = r[i] + b*(p[i]-w*v[i]);
-            for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = p[i];
-            yt = minSurfOp_Vector(zt);
-            v = dco::derivative(yt);
-            a = rho / std::inner_product(r0.begin(), r0.end(), v.begin(), 0.0);
-            for (auto& i: grid.innerNodeList) {
-                dz[i] += a*p[i];
-                s[i] = r[i]-a*v[i];
-            }
-            // calculate res (intermidiate)
-            for (auto& i: grid.innerNodeList) z1[i] = z[i] + dz[i];
-            y = minSurfOp_Vector(z1);
-            res1 = 0;
-            for (auto& i: grid.innerNodeList)
-                res1 += pow(y[i], 2);
-            res1 = std::sqrt(res1);
-            if (res1 < 1.e-6) break;
-            
-            for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = s[i];
-            yt = minSurfOp_Vector(zt);
-            t = dco::derivative(yt);
-            w = std::inner_product(t.begin(), t.end(), s.begin(), 0.0) / \
-                std::inner_product(t.begin(), t.end(), t.begin(), 0.0);
-            for (auto& i: grid.innerNodeList) {
-                dz[i] += w*s[i];
-                r[i] = s[i]-w*t[i];
-            }
-        }
-    
-        // update z
-        for (auto& i: grid.innerNodeList)
-            z[i] += dz[i];
+       // matrix solver (BiCGSTAB)
+       while (std::inner_product(r.begin(), r.end(), r.begin(), 0.0) > 1.e-16) {
+           rho_new = std::inner_product(r0.begin(), r0.end(), r.begin(), 0.0);
+           b = (rho_new/rho) * (a/w);
+           rho = rho_new;
+           for (auto& i: grid.innerNodeList) p[i] = r[i] + b*(p[i]-w*v[i]);
+           for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = p[i];
+           yt = minSurfOp_Vector(zt);
+           v = dco::derivative(yt);
+           a = rho / std::inner_product(r0.begin(), r0.end(), v.begin(), 0.0);
+           for (auto& i: grid.innerNodeList) {
+               dz[i] += a*p[i];
+               s[i] = r[i]-a*v[i];
+           }
+           // calculate res (intermediate)
+           for (auto& i: grid.innerNodeList) z1[i] = z[i] + dz[i];
+           y = minSurfOp_Vector(z1);
+           res1 = 0;
+           for (auto& i: grid.innerNodeList)
+               res1 += pow(y[i], 2);
+           res1 = std::sqrt(res1);
+           if (res1 < inputParserObj.getTOL_Newton()) break;
+           
+           for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = s[i];
+           yt = minSurfOp_Vector(zt);
+           t = dco::derivative(yt);
+           w = std::inner_product(t.begin(), t.end(), s.begin(), 0.0) / \
+               std::inner_product(t.begin(), t.end(), t.begin(), 0.0);
+           for (auto& i: grid.innerNodeList) {
+               dz[i] += w*s[i];
+               r[i] = s[i]-w*t[i];
+           }
+       }
+   
+       // update z
+       for (auto& i: grid.innerNodeList)
+           z[i] += dz[i];
 
-        if( !(iterationIndex%1))
-            std::cout << "\tAt iteration " << iterationIndex  << " res is " << res << std::endl;
-        iterationIndex++;
-    }
+       iterationIndex++;
 
-    std::cout << "Stopped after " << iterationIndex << " iterations with a residual of "
-              << res << "." << std::endl;
-    
-    std::ofstream out;
-    out.open("z2");
-    for (int i=0; i<N*N; i++)
-        out << z[i] << std::endl;
-    out.close();
+       if(inputParserObj.getfileFreq() > 0) {
+           // Writing the output data
+           if( !(iterationIndex%inputParserObj.getfileFreq())) {
+               // Writing the vtk files for visualization
+               for (int i=0; i<N*N; i++) mz[i] = z[i]; 
+               structuredGridWriter<mType,dType>(iterationIndex,mz);
+               // Writing the residual vs. iteration number into a csv file
+               residualWriter<dType>(iterationIndex,res);
+
+           }
+       }
+       std::cout << "\tIteration: " << iterationIndex  << "\tresidual: " << res << std::endl;
+
+
+
+
+   }
+
+   std::cout << "Stopped after " << iterationIndex << " iterations with a residual of "
+             << res << "." << std::endl;
+
+   // Writing final output data
+   for (int i=0; i<N*N; i++) mz[i] = z[i]; 
+   structuredGridWriter<mType,dType>(iterationIndex,mz);
+
+   // Writing the residual vs. iteration number of the final solution into a csv file
+   residualWriter<dType>(iterationIndex,res);
+
+
+   
 }
 
 // Main function to run solver dependent on choice of Jacobian
