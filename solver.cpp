@@ -778,7 +778,7 @@ void solver<mType, dType>::runSolver_ADbyDco( ) {
            p[i] = -1.0*dco::value(yt)[i]-1.0*dco::derivative(yt)[i];
        r = p; r0 = r; std::vector<dType> p(N*N, 0.0); rho = 1; a = 1; w = 1;
 
-       // matrix solver (BiCGSTAB)
+       // matrix free solver (BiCGSTAB)
        while (std::inner_product(r.begin(), r.end(), r.begin(), 0.0) > 1.e-16) {
            rho_new = std::inner_product(r0.begin(), r0.end(), r.begin(), 0.0);
            b = (rho_new/rho) * (a/w);
@@ -822,8 +822,7 @@ void solver<mType, dType>::runSolver_ADbyDco( ) {
            // Writing the output data
            if( !(iterationIndex%inputParserObj.getfileFreq())) {
                // Writing the vtk files for visualization
-               for (int i=0; i<N*N; i++) mz[i] = z[i]; 
-               structuredGridWriter<mType,dType>(iterationIndex,mz);
+               structuredGridWriter<std::vector<dType>,dType>(iterationIndex, z);
                // Writing the residual vs. iteration number into a csv file
                residualWriter<dType>(iterationIndex,res);
 
@@ -840,8 +839,7 @@ void solver<mType, dType>::runSolver_ADbyDco( ) {
              << res << "." << std::endl;
 
    // Writing final output data
-   for (int i=0; i<N*N; i++) mz[i] = z[i]; 
-   structuredGridWriter<mType,dType>(iterationIndex,mz);
+   structuredGridWriter<std::vector<dType>,dType>(iterationIndex, z);
 
    // Writing the residual vs. iteration number of the final solution into a csv file
    residualWriter<dType>(iterationIndex,res);

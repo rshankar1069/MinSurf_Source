@@ -25,7 +25,7 @@ void structuredGridWriter(int iterationIndex, mType z)
 
     std::ofstream file;
     file.open(filename,std::ios::out | std::ios::trunc);
-    file << z;
+    for (auto i=0; i<z.size(); i++) file << z[i] << std::endl;
     file.close();
 
     // Reading the output file to process the data into .vtk format
