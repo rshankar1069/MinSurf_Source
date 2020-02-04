@@ -80,10 +80,11 @@ template<class mType, class dType> class solver
         // Residual function - hardcoded and AD by hand version
         dType residual_HardCoded( Eigen::MatrixBase<mType> &resVec,
                                   const Eigen::MatrixBase<mType> &solVec);
-        dType residual_ADByHand( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian, 
+        dType residual_ADByHand( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian,
                                  Eigen::MatrixBase<mType> &resVec,
-                                 const Eigen::MatrixBase<mType> &solVec);                      
-                                         
+                                 const Eigen::MatrixBase<mType> &solVec);
+        template <class vecType>
+        dType residual_matFree( const vecType &resVec);
         // Functions to run solver depending on way to determine Jacobian
         void runSolver_HardCoded( );
         void runSolver_ADByHand( );

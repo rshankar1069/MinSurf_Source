@@ -270,8 +270,12 @@ void solver<mType, dType>::minSurfOp( Eigen::MatrixBase<mType> &outVec,
 template <class mType, class dType> 
 template <class dcoType> 
 std::vector<dcoType> solver<mType, dType>::minSurfOp_Vector(const std::vector<dcoType> &inVec) {
-    std::vector<dcoType> outVec(N*N);
-    for(auto& i: grid.innerNodeList) {
+    
+   std::vector<dcoType> outVec(N*N);
+   int length = (int) grid.innerNodeList.size();
+   #pragma omp parallel for if(N>=NminParallel)  // tangents are thread-safe
+   for(int index=0; index<length; index++) {
+       int i = grid.innerNodeList[index];
        // tmp = (1+z_x^2)*z_yy
        outVec[i] = (1 + pow((inVec[i+1] - inVec[i-1]) / (2*h), 2))
                     * (inVec[i+N] -2*inVec[i] + inVec[i-N]) / (h*h) \
@@ -528,8 +532,25 @@ dType solver<mType, dType>::residual_ADByHand( Eigen::SparseMatrix<dType, Eigen:
     #pragma omp parallel for reduction(+:res) if(N>=5*NminParallel)
     for(int index=0; index<length; index++)
         res += pow(resVec[grid.innerNodeList[index]], 2);
+
     return sqrt(res);
 }
+
+// Get residual - matrix free 
+template <class mType, class dType>
+template <class vecType>
+dType solver<mType, dType>::residual_matFree( const vecType &resVec) {
+    // returns norm of r
+    dType res = 0;
+    int length = (int) grid.innerNodeList.size();
+    #pragma omp parallel for reduction(+:res) if(N>=NminParallel)
+    for(int index=0; index<length; index++)
+        res += pow(resVec[grid.innerNodeList[index]], 2);
+
+    return sqrt(res);
+}
+
+
 
 
 // -------------------------------------------------------------------------------------------------
@@ -767,15 +788,13 @@ void solver<mType, dType>::runSolver_ADbyDco( ) {
        yt = minSurfOp_Vector(zt); // (y, y^(1)) = F^(1)(x, x^(1));
 
        // calculate residual
-       res = 0;
-       for (auto& i: grid.innerNodeList)
-           res += pow(dco::value(yt)[i], 2);
-       res = std::sqrt(res);
+       res = residual_matFree(dco::value(yt));
        if (res < inputParserObj.getTOL_Newton()) break;
 
        // initialisation
-       for (auto& i: grid.innerNodeList)
+       for (auto& i: grid.innerNodeList) {
            p[i] = -1.0*dco::value(yt)[i]-1.0*dco::derivative(yt)[i];
+       }
        r = p; r0 = r; std::vector<dType> p(N*N, 0.0); rho = 1; a = 1; w = 1;
 
        // matrix free solver (BiCGSTAB)
@@ -795,10 +814,7 @@ void solver<mType, dType>::runSolver_ADbyDco( ) {
            // calculate res (intermediate)
            for (auto& i: grid.innerNodeList) z1[i] = z[i] + dz[i];
            y = minSurfOp_Vector(z1);
-           res1 = 0;
-           for (auto& i: grid.innerNodeList)
-               res1 += pow(y[i], 2);
-           res1 = std::sqrt(res1);
+           res1 = residual_matFree(y);
            if (res1 < inputParserObj.getTOL_Newton()) break;
            
            for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = s[i];
