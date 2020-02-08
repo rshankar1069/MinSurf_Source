@@ -36,7 +36,7 @@ usePoissonGuess 1
 # Tolerance to use for the convergence of the Newton-Raphson Iterations
 TOL_newton 1e-5
 
-# Tolerance to use for the convergence of the Newton-Raphson Iterations
+# Tolerance to use for the convergence of the linear iterative solver 
 TOL_linsolver 1e-6 
 
 # Maximum number of iterations for the Newton-Raphson Iterations

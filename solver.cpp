@@ -257,10 +257,6 @@ void solver<mType, dType>::minSurfOp( Eigen::MatrixBase<mType> &outVec,
        tmp += (1 + pow(getDy(inVec, i), 2))
                      * getDxx(inVec, i);
 
-       if (fabs(tmp) > 1e-10)
-           outVec[i] = tmp;
-       else
-           outVec[i] = 0.;
    }
 
 }
