@@ -17,6 +17,10 @@ if (NOT VTK_FOUND)
   return ()
 endif()
 
+#do not use this, because CMAKE_BUILD_TPYE can be set to Release or Debug add_compile_options(-g -O3 -std=c++11)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 ## OpenMP options
 find_package(OpenMP)
 if (OPENMP_FOUND)
