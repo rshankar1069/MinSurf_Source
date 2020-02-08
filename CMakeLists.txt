@@ -29,8 +29,6 @@ if (OPENMP_FOUND)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
-## General compile options
-add_compile_options(-Ofast -march=native)
 
 ## Link VTK
 message (STATUS "VTK_VERSION: ${VTK_VERSION}")
@@ -50,3 +48,5 @@ else ()
     MODULES ${VTK_LIBRARIES}
     )
 endif () 
+
+set(CMAKE_BUILD_TYPE Release)

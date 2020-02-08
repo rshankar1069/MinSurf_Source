@@ -50,7 +50,7 @@ relaxNewton 0.9
 # -> hardcoded, full Jacobian (0)
 # -> ADbyHand, full Jacobian (1)
 # -> ADbyDCO, matrix-free solver (2)
-jacobianOpt 2
+jacobianOpt 1
 
 ## File writing frequency
 # Set the value to 0 if no output is to be written
