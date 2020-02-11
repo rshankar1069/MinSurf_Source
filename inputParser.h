@@ -29,7 +29,7 @@ class input_parser
         std::string varnames;                               // Temporary variable to store variable names
         double TOL_Newton;                                  // Tolerance value for the Newton-Raphson Iterations
         double TOL_linsolver;                               // Tolerance value for linear solver 
-        int usePoissonGuess;                                // Option to choose Poisson Guess for the initial condition
+        int useLaplaceGuess;                                // Option to choose Poisson Guess for the initial condition
         int maxIter;                                        // Maximum number of iterations
         double relaxNewton;                                 // relaxation parameter for Newton procedure 
         int jacobianOpt;                                    // Option to choose the Jacobian to be used in solving the problem
@@ -53,7 +53,7 @@ class input_parser
         void setVars();
         void setTOL_Newton();
         void setTOL_linsolver();
-        void setPoissonGuess();
+        void setLaplaceGuess();
         void setjacobianOpt();
         void setmaxIters();
         void setrelaxNewton();
@@ -73,7 +73,7 @@ class input_parser
         std::vector<std::string> getVars();
         double getTOL_Newton();
         double getTOL_linsolver();
-        int getPoissonGuess();
+        int getLaplaceGuess();
         int getjacobianOpt();
         int getmaxIters();
         double getrelaxNewton();
@@ -97,7 +97,7 @@ class input_parser
             setVars();
             setTOL_Newton();
             setTOL_linsolver();
-            setPoissonGuess();
+            setLaplaceGuess();
             setmaxIters();
             setrelaxNewton();
             setjacobianOpt();

@@ -29,9 +29,9 @@ BC.LEFT   sin($pi*y)
 ## Tuning Parameters
 ## Parameters required to control the simulation run
 
-# 0 -> Do not use Poisson initial guess
-# 1 -> Use Poisson initial guess
-usePoissonGuess 1
+# 0 -> Do not use Laplace initial guess
+# 1 -> Use Laplace initial guess
+useLaplaceGuess 1
 
 # Tolerance to use for the convergence of the Newton-Raphson Iterations
 TOL_newton 1e-6

@@ -25,6 +25,7 @@ void structuredGridWriter(int iterationIndex, mType z)
 
     std::ofstream file;
     file.open(filename,std::ios::out | std::ios::trunc);
+    file.precision(15);
     for (auto i=0; i<z.size(); i++) file << z[i] << std::endl;
     file.close();
 

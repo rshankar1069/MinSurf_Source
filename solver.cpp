@@ -51,51 +51,66 @@ void solver<mType, dType>::applyBC( Eigen::MatrixBase<mType> &inVec ) {
             varnames += variables[i];
     }
 
-    // On the bottom
-    std::string bottom = inputParserObj.getBCBottom();
-    parser.parse(byteCode,bottom,varnames);
-
-    for(auto& index: grid.bdryNodeList.bottom)
+    #pragma omp parallel if(N>=NminParallel)
     {
-        byteCode.var[0] = grid.getCooX(index);
-        byteCode.var[1] = grid.getCooY(index);
-        inVec[index] = byteCode.run();
-    }
-    // On the right
-    std::string right = inputParserObj.getBCRight();
-    parser.parse(byteCode,right,varnames);
+      #pragma omp sections nowait
+      {
+        #pragma omp section
+        {
+          // On the bottom
+          std::string bottom = inputParserObj.getBCBottom();
+          parser.parse(byteCode,bottom,varnames);
 
-    for(auto& index: grid.bdryNodeList.right) {
-        byteCode.var[0] = grid.getCooX(index);
-        byteCode.var[1] = grid.getCooY(index);
-        inVec[index] = byteCode.run();
-    }
-    // On the top
-    std::string top = inputParserObj.getBCTop();
-    parser.parse(byteCode,top,varnames);
+          for(auto& index: grid.bdryNodeList.bottom) {
+              byteCode.var[0] = grid.getCooX(index);
+              byteCode.var[1] = grid.getCooY(index);
+              inVec[index] = byteCode.run();
+          }
+        }
+        #pragma omp section
+        {
+          // On the right
+          std::string right = inputParserObj.getBCRight();
+          parser.parse(byteCode,right,varnames);
 
-    for(auto& index: grid.bdryNodeList.top)
-    {
-        byteCode.var[0] = grid.getCooX(index);
-        byteCode.var[1] = grid.getCooY(index);
-        inVec[index] = byteCode.run();
-    }
-    // On the left
-    std::string left = inputParserObj.getBCLeft();
-    parser.parse(byteCode,left,varnames);
+          for(auto& index: grid.bdryNodeList.right) {
+              byteCode.var[0] = grid.getCooX(index);
+              byteCode.var[1] = grid.getCooY(index);
+              inVec[index] = byteCode.run();
+          }
+        }
+        #pragma omp section
+        {
+          // On the top
+          std::string top = inputParserObj.getBCTop();
+          parser.parse(byteCode,top,varnames);
 
-    for(auto& index: grid.bdryNodeList.left)
-    {
-        byteCode.var[0] = grid.getCooX(index);
-        byteCode.var[1] = grid.getCooY(index);
-        inVec[index] = byteCode.run();
+          for(auto& index: grid.bdryNodeList.top) {
+              byteCode.var[0] = grid.getCooX(index);
+              byteCode.var[1] = grid.getCooY(index);
+              inVec[index] = byteCode.run();
+          }
+        }
+        #pragma omp section
+        {
+          // On the left
+          std::string left = inputParserObj.getBCLeft();
+          parser.parse(byteCode,left,varnames);
+
+          for(auto& index: grid.bdryNodeList.left) {
+              byteCode.var[0] = grid.getCooX(index);
+              byteCode.var[1] = grid.getCooY(index);
+              inVec[index] = byteCode.run();
+          }
+        }
+      }
     }
 }
 
 // -------------------------------------------------------------------------------------------------
-// Method to build poisson matrix
+// Method to build laplace matrix
 template <class mType, class dType>
-void solver<mType, dType>::buildPoissonMatrix( Eigen::SparseMatrix<dType, Eigen::RowMajor> &poissonMatrix ) { 
+void solver<mType, dType>::buildLaplaceMatrix( Eigen::SparseMatrix<dType, Eigen::RowMajor> &poissonMatrix ) { 
     
    typedef Eigen::Triplet<dType> triplet;
    std::vector<triplet> tripletList;
@@ -105,7 +120,7 @@ void solver<mType, dType>::buildPoissonMatrix( Eigen::SparseMatrix<dType, Eigen:
     
    // Assemble the FD matrix (should work, validated with matlab)
    #pragma omp parallel if(N>=5*NminParallel)
-    {
+   {
       std::vector<triplet> tripletListLoc;
       // Set inner nodes - 5-pt stencil of FD (there should not be an issue with reaching 
       // the limits of the matrix...)
@@ -168,19 +183,58 @@ void solver<mType, dType>::buildPoissonMatrix( Eigen::SparseMatrix<dType, Eigen:
 template <class mType, class dType>
 void solver<mType, dType>::getInitGuess( Eigen::MatrixBase<mType> &z ){
     
-    // Prepare RHS
-    mType b = mType::Zero(N*N);
-    applyBC(b);
-    
-    // Build Poisson-matrix 
-    Eigen::SparseMatrix<dType, Eigen::RowMajor> poissonMatrix(N*N, N*N);
-    buildPoissonMatrix(poissonMatrix);
+    // If initialGuess == 1, use average initial guess
+    if ( inputParserObj.getLaplaceGuess() == 1 ) {
+       applyBC(z);
+       dType ave=0;
+       #pragma omp parallel if(N>=5*NminParallel)
+       {
+         dType aveLoc=0;
+         #pragma omp sections nowait
+         {
+           #pragma omp section
+           {
+           for (auto& i: grid.bdryNodeList.bottom) aveLoc += z[i]; 
+           }
+           #pragma omp section
+           {
+           for (auto& i: grid.bdryNodeList.right)  aveLoc += z[i]; 
+           }
+           #pragma omp section
+           {
+           for (auto& i: grid.bdryNodeList.top)    aveLoc += z[i]; 
+           }
+           #pragma omp section
+           {
+           for (auto& i: grid.bdryNodeList.left)   aveLoc += z[i]; 
+           }
+         }
+         #pragma omp atomic
+         ave += aveLoc;
+       }
+       // Compute average over boundary values and set all inner z to average
+       ave /= 4*(N-1);
+       for (auto& i: grid.innerNodeList) {
+         z[i] = ave;
+       }
+    }
+    // Else if InitGuess = 1, use solution for Laplace's equation 
+    else if( inputParserObj.getLaplaceGuess() == 2 ) {
+  
+        // Prepare RHS
+        mType b = mType::Zero(N*N);
+        applyBC(b);
+   
+        // Build Laplace-matrix 
+        Eigen::SparseMatrix<dType, Eigen::RowMajor> poissonMatrix(N*N, N*N);
+        buildLaplaceMatrix(poissonMatrix);
 
-    // Solve the Poisson equation using BiCGSTAB 
-    Eigen::setNbThreads(numThreads);
-    Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
-    bicgstab.setTolerance(TOL_linsolver);
-    z = bicgstab.compute(poissonMatrix).solve(b);
+        // Solve the Laplace equation using BiCGSTAB 
+        Eigen::setNbThreads(numThreads);
+        Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
+        bicgstab.setTolerance(TOL_linsolver);
+        z = bicgstab.compute(poissonMatrix).solve(b);
+    }
     
 }
 
@@ -289,7 +343,7 @@ std::vector<dcoType> solver<mType, dType>::minSurfOp_Vector(const std::vector<dc
 // -------------------------------------------------------------------------------------------------
 // Jacobian by hand
 template <class mType, class dType> 
-void solver<mType, dType>::minSurfJac_HardCoded( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian,
+void solver<mType, dType>::minSurfJac_Symbolic( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian,
                                                             const Eigen::MatrixBase<mType> &inVec) {
    typedef Eigen::Triplet<dType> triplet;
    std::vector<triplet> tripletList;
@@ -373,7 +427,7 @@ void solver<mType, dType>::minSurfJac_HardCoded( Eigen::SparseMatrix<dType, Eige
 // Jacobian via AD by hand
 // returns application of minSurf-operator + Jacobian
 template <class mType, class dType> 
-void solver<mType, dType>::minSurfJac_ADByHand( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian, 
+void solver<mType, dType>::minSurfJac_HandwrittenAdjoint( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian, 
                                                 Eigen::MatrixBase<mType> &outVec, 
                                                 const Eigen::MatrixBase<mType> &inVec) {
     
@@ -403,12 +457,11 @@ void solver<mType, dType>::minSurfJac_ADByHand( Eigen::SparseMatrix<dType, Eigen
          
          // forward
          // d(...) = fd(x) // @Chenfei: can't we use the functions defined above??
-         dType dx = (inVec[i + 1] - inVec[i - 1]) / (2 * h);
-         dType dy = (inVec[i + N] - inVec[i - N]) / (2 * h);
-         dType dxx = (inVec[i + 1] - 2 * inVec[i] + inVec[i - 1]) / (h * h);
-         dType dyy = (inVec[i + N] - 2 * inVec[i] + inVec[i - N]) / (h * h);
-         dType dxy = (inVec[i + 1 + N] + inVec[i - 1 - N] - inVec[i + 1 - N] - inVec[i - 1 + N])
-                         / (4 * h * h);
+         dType dx = getDx(inVec, i);
+         dType dy = getDy(inVec, i);
+         dType dxx = getDxx(inVec, i);
+         dType dyy = getDyy(inVec, i);
+         dType dxy = getDxy(inVec, i);
  
          // v1 = (1+z_x^2)*z_yy
          dType v1 = (1 + pow(dx, 2)) * dyy;
@@ -490,7 +543,7 @@ void solver<mType, dType>::minSurfJac_ADByHand( Eigen::SparseMatrix<dType, Eigen
 // -------------------------------------------------------------------------------------------------
 // Get residual by application of minSurf-operator
 template <class mType, class dType>
-dType solver<mType, dType>::residual_HardCoded( Eigen::MatrixBase<mType> &resVec,
+dType solver<mType, dType>::residual_Symbolic( Eigen::MatrixBase<mType> &resVec,
                                       const Eigen::MatrixBase<mType> &solVec ) {
     // computes residual entries in resVec
     // returns norm of r
@@ -511,7 +564,7 @@ dType solver<mType, dType>::residual_HardCoded( Eigen::MatrixBase<mType> &resVec
 
 // Get residual - AD by hand
 template <class mType, class dType>
-dType solver<mType, dType>::residual_ADByHand( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian, 
+dType solver<mType, dType>::residual_HandwrittenAdjoint( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian, 
                                       Eigen::MatrixBase<mType> &resVec,
                                       const Eigen::MatrixBase<mType> &solVec) {
     // computes residual entries in resVec
@@ -520,7 +573,7 @@ dType solver<mType, dType>::residual_ADByHand( Eigen::SparseMatrix<dType, Eigen:
     // F^h(z^h) = r^h
     // r^h contains the residual, which shall go to zero, in the innerNodeList, and 
     // the boundary information on the bdryNodeList
-    minSurfJac_ADByHand(Jacobian, resVec, solVec);
+    minSurfJac_HandwrittenAdjoint(Jacobian, resVec, solVec);
     //~std::cout << resVec << std::endl;     
         
     dType res = 0;
@@ -555,13 +608,13 @@ dType solver<mType, dType>::residual_matFree( const vecType &resVec) {
 
 // Run solver using hardcoded Jacobian
 template<class mType, class dType>
-void solver<mType, dType>::runSolver_HardCoded( ) {
+void solver<mType, dType>::runSolver_Symbolic( ) {
 
    mType z = mType::Zero(N*N);
    
  
    std::cout << "Chose to run";
-   if (inputParserObj.getPoissonGuess()) {
+   if (inputParserObj.getLaplaceGuess()) {
        std::cout << " with non-trivial initial guess." << std::endl;
        getInitGuess(z); 
    }
@@ -575,7 +628,7 @@ void solver<mType, dType>::runSolver_HardCoded( ) {
    mType dz = mType::Zero(N*N); 
    Eigen::SparseMatrix<dType, Eigen::RowMajor> Jacobian(N*N, N*N);
    
-   res = residual_HardCoded(resVec, z);
+   res = residual_Symbolic(resVec, z);
       
    std::cout << "Starting residual: " << res << std::endl;
    
@@ -587,11 +640,11 @@ void solver<mType, dType>::runSolver_HardCoded( ) {
    do { 
        
        // get Jacobian
-       minSurfJac_HardCoded(Jacobian, z);
+       minSurfJac_Symbolic(Jacobian, z);
       
        // dz_n = grad[F(z_n)]^-1 * F(z_n)
        // To be played with: preconditioner (MUST), 
-       // initial guess (maybe inversion of the Poisson-gradient might also help, but no idea), 
+       // initial guess (maybe inversion of the Laplace-gradient might also help, but no idea), 
        //     tolerance (MUST).. should not be too high, as our main goal is the result of Newton
        Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
        bicgstab.setTolerance(TOL_linsolver);
@@ -602,7 +655,7 @@ void solver<mType, dType>::runSolver_HardCoded( ) {
        z -= omega*dz; 
    
        // get residual and resVec -> F(z_n)
-       res = residual_HardCoded(resVec, z);
+       res = residual_Symbolic(resVec, z);
        
        iterationIndex++;
        if(inputParserObj.getfileFreq() > 0) {
@@ -633,11 +686,11 @@ void solver<mType, dType>::runSolver_HardCoded( ) {
 
 // Run solver using AD by hand
 template<class mType, class dType>
-void solver<mType, dType>::runSolver_ADByHand( ) {
+void solver<mType, dType>::runSolver_HandwrittenAdjoint( ) {
    mType z = mType::Zero(N*N);
    
    std::cout << "Chose to run";
-   if (inputParserObj.getPoissonGuess()) {
+   if (inputParserObj.getLaplaceGuess()) {
        std::cout << " with non-trivial initial guess." << std::endl;
        getInitGuess(z); 
    }
@@ -652,7 +705,7 @@ void solver<mType, dType>::runSolver_ADByHand( ) {
    Eigen::SparseMatrix<dType, Eigen::RowMajor> Jacobian(N*N, N*N);
    
    // Determine initial residual + Jacobian 
-   res = residual_ADByHand(Jacobian, resVec, z);
+   res = residual_HandwrittenAdjoint(Jacobian, resVec, z);
        
    std::cout << "Starting residual: " << res << std::endl;
    
@@ -663,7 +716,7 @@ void solver<mType, dType>::runSolver_ADByHand( ) {
    do { 
        // dz_n = grad[F(z_n)]^-1 * F(z_n)
        // To be played with: preconditioner (MUST), 
-       // initial guess (maybe inversion of the Poisson-gradient might also help, but no idea), 
+       // initial guess (maybe inversion of the Laplace-gradient might also help, but no idea), 
        //     tolerance (MUST).. should not be too high, as our main goal is the result of Newton
        Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
        bicgstab.setTolerance(TOL_linsolver);
@@ -674,7 +727,7 @@ void solver<mType, dType>::runSolver_ADByHand( ) {
        z -= omega*dz; 
    
        // get residual and resVec -> F(z_n)
-       res = residual_ADByHand(Jacobian, resVec, z);
+       res = residual_HandwrittenAdjoint(Jacobian, resVec, z);
        
        iterationIndex++;
        if(inputParserObj.getfileFreq() > 0) {
@@ -704,11 +757,11 @@ void solver<mType, dType>::runSolver_ADByHand( ) {
 
 // Run solver using AD by dco_c++
 template<class mType, class dType>
-void solver<mType, dType>::runSolver_ADbyDco( ) {
+void solver<mType, dType>::runSolver_DcoMatrixFree( ) {
 
    mType mz = mType::Zero(N*N);
    std::cout << "Chose to run";
-   if (inputParserObj.getPoissonGuess()) {
+   if (inputParserObj.getLaplaceGuess()) {
        std::cout << " with non-trivial initial guess." << std::endl;
        getInitGuess(mz); 
    }
@@ -869,15 +922,15 @@ void solver<mType, dType>::runSolver( ) {
     switch(jacobianOpt) {
         case 0:
                std::cout << " hardcoded Jacobian option." << std::endl;
-               runSolver_HardCoded();
+               runSolver_Symbolic();
                break;
         case 1:
                std::cout << " adjoint AD by hand Jacobian option." << std::endl;
-               runSolver_ADByHand();
+               runSolver_HandwrittenAdjoint();
                break;
         case 2:
                std::cout << " DCO tangent Jacobian option with matrix free solver." << std::endl;
-               runSolver_ADbyDco();
+               runSolver_DcoMatrixFree();
                break;
     }
 } 

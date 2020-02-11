@@ -2,7 +2,7 @@
 
 # ~ Number of gridpoints per dimension
 # --> Have thus noMeshElements^2 elements
-noMeshElements 300 
+noMeshElements 100 
 
 ## Constants (apart from "pi", "e" and "i")
 ## Append '$' in the front of the constant to pass it to the expression parser
@@ -21,17 +21,18 @@ VAR1 y
 ## Boundary Conditions
 ## Use constants with '$' sign to pass the expression to the parser 
 
-BC.BOTTOM sin($pi*x) 
+BC.BOTTOM sin($pi*x)+1 
 BC.RIGHT  sin($pi*y)
-BC.TOP    sin($pi*x)
+BC.TOP    sin($pi*x)+1
 BC.LEFT   sin($pi*y)
 
 ## Tuning Parameters
 ## Parameters required to control the simulation run
 
-# 0 -> Do not use Poisson initial guess
-# 1 -> Use Poisson initial guess
-usePoissonGuess 1
+# 0 -> Use Zero initial guess 
+# 1 -> Use average initial guess
+# 2 -> Use Laplace initial guess
+useLaplaceGuess 2
 
 # Tolerance to use for the convergence of the Newton-Raphson Iterations
 TOL_newton 1e-5
