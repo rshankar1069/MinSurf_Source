@@ -29,14 +29,16 @@ BC.LEFT   -1
 ## Tuning Parameters
 ## Parameters required to control the simulation run
 
-# 0 -> Do not use Laplace initial guess
-# 1 -> Use Laplace initial guess
-useLaplaceGuess 1
+# 0 -> Use Zero initial guess 
+# 1 -> Use average initial guess
+# 2 -> Use Laplace initial guess
+initGuessChoice 2
 
 # Tolerance to use for the convergence of the Newton-Raphson Iterations
 TOL_newton 1e-6
 
 # Tolerance to use for the convergence of the linear iterative solver
+# TOL_linsolver should not be larger than TOL_newton
 TOL_linsolver 1e-6 
 
 # Maximum number of iterations for the Newton-Raphson Iterations

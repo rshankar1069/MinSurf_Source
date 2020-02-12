@@ -1,8 +1,10 @@
+## This Params.in file serves just as an example
+
 ## Mesh Parameters
 
 # ~ Number of gridpoints per dimension
 # --> Have thus noMeshElements^2 elements
-noMeshElements 70 
+noMeshElements 100
 
 ## Constants (apart from "pi", "e" and "i")
 ## Append '$' in the front of the constant to pass it to the expression parser
@@ -35,34 +37,34 @@ BC.LEFT   sin($pi*y)
 initGuessChoice 2
 
 # Tolerance to use for the convergence of the Newton-Raphson Iterations
-TOL_newton 1e-4
+TOL_newton 1e-6
 
-# Tolerance to use for the convergence of the linear iterative solver 
+# Tolerance to use for the convergence of the linear iterative solver
 # TOL_linsolver should not be larger than TOL_newton
-TOL_linsolver 1e-9 
+TOL_linsolver 1e-6 
 
 # Maximum number of iterations for the Newton-Raphson Iterations
 maxIter 50
 
 # Relaxation parameter for Newton procedure
 # relaxNewton \in (0,1] 
-relaxNewton 0.9 
+relaxNewton 50
 
 # Option to choose the Jacobian calculation 
 # -> hardcoded, full Jacobian (0)
 # -> ADbyHand, full Jacobian (1)
 # -> ADbyDCO, matrix-free solver (2)
-jacobianOpt 2
+jacobianOpt 0
 
 ## File writing frequency
 # Set the value to 0 if no output is to be written
-fileFreq 1
+fileFreq 0
 
 ## OpenMP Parameters
 # No of threads for parallel execution
 nThreads 4 
 # Minimal number of gridpoints per dimension for parallel execution 
-nMinParallel 50 
+nMinParallel 100 
 
 ## Output Folder Location
 
