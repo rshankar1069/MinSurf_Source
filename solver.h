@@ -89,6 +89,11 @@ template<class mType, class dType> class solver
         // Function for loop-wise solver output 
         template <class vecType>
         void writeLoopOutput( const vecType &z, const dType res, const unsigned iteration );
+        // Function to check whether solver is stuck 
+        bool checkProgress( const dType res, const dType lastRes );
+        // Parallel computation of inner product  
+        template <class vecType>
+        dType innerProduct( const vecType inVec1, const vecType inVec2 );
         // Functions to run solver depending on way to determine Jacobian
         void runSolver_WithMatrix( Eigen::MatrixBase<mType> &z, int jacobianOpt, 
                                    dType &res, unsigned &iteration );

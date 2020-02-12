@@ -310,8 +310,9 @@ void solver<mType, dType>::minSurfOp( Eigen::MatrixBase<mType> &outVec,
         // tmp += (1+z_y^2)*z_xx
         tmp += (1 + pow(getDy(inVec, i), 2))
                       * getDxx(inVec, i);
- 
-    }
+
+        outVec[i] = tmp;
+   }
 
 }
 
@@ -553,13 +554,9 @@ dType solver<mType, dType>::residual_Symbolic( Eigen::MatrixBase<mType> &resVec,
     // the boundary information on the bdryNodeList
     minSurfOp(resVec, solVec);
         
-    dType res = 0;
-    int length = (int) grid.innerNodeList.size();
-    #pragma omp parallel for reduction(+:res) if(N>=5*NminParallel)
-    for(int index=0; index<length; index++)
-        res += pow(resVec[grid.innerNodeList[index]], 2);
-
-    return std::sqrt(res);
+    dType res = std::sqrt(innerProduct<mType>(resVec, resVec));
+   
+    return res;
 }
 
 // Get residual - AD by hand (mimicks overloading)
@@ -574,15 +571,10 @@ dType solver<mType, dType>::residual_HandwrittenAdjoint( Eigen::SparseMatrix<dTy
     // r^h contains the residual, which shall go to zero, in the innerNodeList, and 
     // the boundary information on the bdryNodeList
     minSurfJac_HandwrittenAdjoint(Jacobian, resVec, solVec);
-    //~std::cout << resVec << std::endl;     
         
-    dType res = 0;
-    int length = (int) grid.innerNodeList.size();
-    #pragma omp parallel for reduction(+:res) if(N>=5*NminParallel)
-    for(int index=0; index<length; index++)
-        res += pow(resVec[grid.innerNodeList[index]], 2);
+    dType res = std::sqrt(innerProduct<mType>(resVec, resVec));
 
-    return std::sqrt(res);
+    return res;
 }
 
 // Get residual - matrix free 
@@ -590,28 +582,10 @@ template <class mType, class dType>
 template <class vecType>
 dType solver<mType, dType>::residual_matFree( const vecType &resVec) {
     // returns norm of r
-    dType res = 0;
-    int length = (int) grid.innerNodeList.size();
-    #pragma omp parallel for reduction(+:res) if(N>=NminParallel)
-    for(int index=0; index<length; index++)
-        res += pow(resVec[grid.innerNodeList[index]], 2);
+    dType res = std::sqrt(innerProduct(resVec, resVec));
 
-    return std::sqrt(res);
+    return res;
 }
-
-// template <class mType, class dType>
-// template <class vecType>
-// dType solver<mType, dType>::calcResidual( const vecType &resVec ) {
-//     // returns norm of r
-//     dType res = 0;
-//     int length = (int) grid.innerNodeList.size();
-//     #pragma omp parallel for reduction(+:res) if(N>=NminParallel)
-//     for(int index=0; index<length; index++)
-//         res += pow(resVec[grid.innerNodeList[index]], 2);
-// 
-//     return std::sqrt(res);
-// }
-
 
 
 
@@ -622,6 +596,8 @@ dType solver<mType, dType>::residual_matFree( const vecType &resVec) {
 // Matrix-free tangent version using dco_c++ 
  
 
+// Misc functions 
+// °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
 // Write solver output
 template<class mType, class dType>
 template<class vecType>
@@ -641,6 +617,50 @@ void solver<mType, dType>::writeLoopOutput( const vecType &z, const dType res, c
 
 }
 
+// Check solver progress
+// Returns True, if difference between current and last residual is very small 
+template<class mType, class dType>
+bool solver<mType, dType>::checkProgress( const dType res, const dType lastRes ) {
+
+    bool out;
+    if (std::fabs(res-lastRes)/res < 5e-2 && res > lastRes) {
+        out = true;
+        std::cout << "\tSolver is not making any progress. Aborting..." << std::endl;
+    }
+    else 
+        out = false; 
+
+
+    return out;
+
+}
+
+// Parallel version of inner product
+template<class mType, class dType>
+template<class vecType>
+dType solver<mType, dType>::innerProduct( const vecType inVec1, const vecType inVec2 ) {
+    
+    dType out=0;
+
+    // Check if dimensions of inVecs align
+    if (inVec1.size() != inVec2.size()) {
+        std::cout << "++++++++++ ERROR!! Vectors for computation of inner product have"
+                  << " different dimension. Exiting the program ++++++++++" << std::endl;
+        exit(EXIT_FAILURE); 
+    }
+    int length = (int) inVec1.size();
+    #pragma omp parallel for reduction(+:out) if(N>=NminParallel)
+    for(int i=0; i<inVec1.size(); i++) {
+        out += inVec1[i]*inVec2[i];
+    }
+
+    return out;
+
+}
+
+
+
+// °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
 // Run solver using one of the algorithms that depend on 
 // assembling the Jacobian matrix
 template<class mType, class dType>
@@ -657,7 +677,7 @@ void solver<mType, dType>::runSolver_WithMatrix( Eigen::MatrixBase<mType> &z, in
         res = residual_Symbolic(resVec, z);
     else if (jacobianOpt == 1) // also computes Jacobian
         res = residual_HandwrittenAdjoint(Jacobian, resVec, z);
-        
+    dType lastRes = res;    
     std::cout << "Starting residual: " << res << std::endl;
     
     dType omega = inputParserObj.getrelaxNewton(); // Relaxation parameter for Newton-Raphson
@@ -690,7 +710,11 @@ void solver<mType, dType>::runSolver_WithMatrix( Eigen::MatrixBase<mType> &z, in
             res = residual_HandwrittenAdjoint(Jacobian, resVec, z);
         
         iteration++;
-        writeLoopOutput<Eigen::MatrixBase<mType>>(z, res, iteration);
+        writeLoopOutput<mType>(z, res, iteration);
+        // Check if solver stuck
+        if (checkProgress(res, lastRes))
+            break;
+        lastRes = res;
  
     } while (res > inputParserObj.getTOL_Newton() && 
              iteration < inputParserObj.getmaxIters());
@@ -708,11 +732,14 @@ void solver<mType, dType>::runSolver_DcoMatrixFree( mType &mz, dType &res, unsig
  
     typedef typename dco::gt1s<dType>::type ADtype;
     std::vector<ADtype> yt;
+    int lengthInnerNodeList = (int) grid.innerNodeList.size();
+    bool stopAfterIntermediateLevel = false;                  // Workaround as break statements
+                                                              // are not allowed in omp region
 
     // BiCGSTAB solver 
     // Have non-spd matrices -> CG does not work reliably,
     // Eigen library recommends BiCGSTAB over GMRES
-    dType rho, rho_new, a, b, w, res1;
+    dType rho, rho_new, a, b, w, res1, lastRes=0;
     std::vector<dType> dz(N*N, 0.0), v(N*N, 0.0), p(N*N, 0.0), r(N*N, 0.0),\
     s(N*N, 0.0), t(N*N, 0.0), r0(N*N, 0.0), z1(N*N, 0.0), y(N*N, 0.0);
     while (iteration < inputParserObj.getmaxIters()) {
@@ -723,6 +750,11 @@ void solver<mType, dType>::runSolver_DcoMatrixFree( mType &mz, dType &res, unsig
  
         // calculate residual
         res = residual_matFree(dco::value(yt));
+        // abort if solver is stuck
+        if (checkProgress(res, lastRes))
+            break;
+        lastRes = res; 
+        // abort if converged
         if (res < inputParserObj.getTOL_Newton()) 
             break;
  
@@ -733,35 +765,61 @@ void solver<mType, dType>::runSolver_DcoMatrixFree( mType &mz, dType &res, unsig
         r = p; r0 = r; std::vector<dType> p(N*N, 0.0); rho = 1; a = 1; w = 1;
  
         // matrix free linear iterative solver (BiCGSTAB)
-        while (std::inner_product(r.begin(), r.end(), r.begin(), 0.0) > inputParserObj.getTOL_linsolver()) {
-            rho_new = std::inner_product(r0.begin(), r0.end(), r.begin(), 0.0);
-            b = (rho_new/rho) * (a/w);
-            rho = rho_new;
-            for (auto& i: grid.innerNodeList) p[i] = r[i] + b*(p[i]-w*v[i]);
-            for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = p[i];
-            yt = minSurfOp_Vector(zt);
-            v = dco::derivative(yt);
-            a = rho / std::inner_product(r0.begin(), r0.end(), v.begin(), 0.0);
-            for (auto& i: grid.innerNodeList) {
-                dz[i] += a*p[i];
-                s[i] = r[i]-a*v[i];
-            }
-            // calculate res (intermediate)
-            for (auto& i: grid.innerNodeList) z1[i] = z[i] + dz[i];
-            y = minSurfOp_Vector(z1);
-            res1 = residual_matFree(y);
-            // If solver aborts on intermediate level, final output will be written in runSolver-function and is not lost
-            if (res1 < inputParserObj.getTOL_Newton()) 
-                break;
-            
-            for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = s[i];
-            yt = minSurfOp_Vector(zt);
-            t = dco::derivative(yt);
-            w = std::inner_product(t.begin(), t.end(), s.begin(), 0.0) / \
-                std::inner_product(t.begin(), t.end(), t.begin(), 0.0);
-            for (auto& i: grid.innerNodeList) {
-                dz[i] += w*s[i];
-                r[i] = s[i]-w*t[i];
+        while (innerProduct(r, r) > inputParserObj.getTOL_linsolver() || 
+                   stopAfterIntermediateLevel) {
+            #pragma omp parallel if(N>=NminParallel)
+            {
+              #pragma omp single
+              {
+                rho_new = innerProduct(r0, r);
+                b = (rho_new/rho) * (a/w);
+                rho = rho_new;
+              }
+              #pragma omp for
+              for (int index=0; index < lengthInnerNodeList; index++) {
+                    int i = grid.innerNodeList[index];
+                    p[i] = r[i] + b*(p[i]-w*v[i]);
+                    dco::derivative(zt)[i] = p[i];
+              }
+              #pragma omp single
+              {
+                yt = minSurfOp_Vector(zt);
+                v = dco::derivative(yt);
+                a = rho / innerProduct(r0, v);
+              } 
+              #pragma omp parallel for if(N>=NminParallel)
+              for (int index=0; index < lengthInnerNodeList; index++) {
+                    int i = grid.innerNodeList[index];
+                    dz[i] += a*p[i];
+                    s[i] = r[i]-a*v[i];
+              }
+              // calculate res (intermediate)
+              #pragma omp parallel for if(N>=NminParallel)
+              for (int index=0; index < lengthInnerNodeList; index++) {
+                    int i = grid.innerNodeList[index];
+                    z1[i] = z[i] + dz[i];
+              }
+              #pragma omp single
+              {
+                y = minSurfOp_Vector(z1);
+                res1 = residual_matFree(y);
+                // If solver aborts on intermediate level, final output will be written in runSolver-function and is not lost
+                if (res1 < inputParserObj.getTOL_Newton()) {
+                    stopAfterIntermediateLevel = true;
+                }
+                
+                for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = s[i];
+                yt = minSurfOp_Vector(zt);
+                t = dco::derivative(yt);
+                w = innerProduct(t, s) / \
+                    innerProduct(t, t);
+              }
+              #pragma omp parallel for if(N>=NminParallel)
+              for (int index=0; index < lengthInnerNodeList; index++) {
+                    int i = grid.innerNodeList[index];
+                    dz[i] += w*s[i];
+                    r[i] = s[i]-w*t[i];
+              }
             }
         }
     
@@ -813,6 +871,11 @@ void solver<mType, dType>::runSolver( ) {
         case 2:
                std::cout << " DCO tangent Jacobian option with matrix free solver." << std::endl;
                break;
+        default: 
+               std::cout << "\n\nInvalid option for Jacobian. Try again...";
+               exit(EXIT_FAILURE);
+               break;
+               
     }
 
     dType res=0; unsigned iteration=0;

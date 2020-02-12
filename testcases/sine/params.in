@@ -2,7 +2,7 @@
 
 # ~ Number of gridpoints per dimension
 # --> Have thus noMeshElements^2 elements
-noMeshElements 100 
+noMeshElements 70 
 
 ## Constants (apart from "pi", "e" and "i")
 ## Append '$' in the front of the constant to pass it to the expression parser
@@ -21,9 +21,9 @@ VAR1 y
 ## Boundary Conditions
 ## Use constants with '$' sign to pass the expression to the parser 
 
-BC.BOTTOM sin($pi*x)+1 
+BC.BOTTOM sin($pi*x) 
 BC.RIGHT  sin($pi*y)
-BC.TOP    sin($pi*x)+1
+BC.TOP    sin($pi*x)
 BC.LEFT   sin($pi*y)
 
 ## Tuning Parameters
@@ -35,10 +35,11 @@ BC.LEFT   sin($pi*y)
 initGuessChoice 2
 
 # Tolerance to use for the convergence of the Newton-Raphson Iterations
-TOL_newton 1e-5
+TOL_newton 1e-4
 
 # Tolerance to use for the convergence of the linear iterative solver 
-TOL_linsolver 1e-6 
+# TOL_linsolver should not be larger than TOL_newton
+TOL_linsolver 1e-9 
 
 # Maximum number of iterations for the Newton-Raphson Iterations
 maxIter 50
@@ -51,7 +52,7 @@ relaxNewton 0.9
 # -> hardcoded, full Jacobian (0)
 # -> ADbyHand, full Jacobian (1)
 # -> ADbyDCO, matrix-free solver (2)
-jacobianOpt 0
+jacobianOpt 2
 
 ## File writing frequency
 # Set the value to 0 if no output is to be written
@@ -61,7 +62,7 @@ fileFreq 1
 # No of threads for parallel execution
 nThreads 4 
 # Minimal number of gridpoints per dimension for parallel execution 
-nMinParallel 900 
+nMinParallel 50 
 
 ## Output Folder Location
 
