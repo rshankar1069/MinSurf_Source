@@ -32,7 +32,7 @@ BC.LEFT   sin($pi*y)
 # 0 -> Use Zero initial guess 
 # 1 -> Use average initial guess
 # 2 -> Use Laplace initial guess
-useLaplaceGuess 2
+initGuessChoice 2
 
 # Tolerance to use for the convergence of the Newton-Raphson Iterations
 TOL_newton 1e-5
@@ -51,11 +51,11 @@ relaxNewton 0.9
 # -> hardcoded, full Jacobian (0)
 # -> ADbyHand, full Jacobian (1)
 # -> ADbyDCO, matrix-free solver (2)
-jacobianOpt 1
+jacobianOpt 0
 
 ## File writing frequency
 # Set the value to 0 if no output is to be written
-fileFreq 0
+fileFreq 1
 
 ## OpenMP Parameters
 # No of threads for parallel execution

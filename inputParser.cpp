@@ -200,13 +200,13 @@ void input_parser::setTOL_linsolver()
 }
 
 // Function defined to set the option of using Laplace solution as the initial guess
-void input_parser::setLaplaceGuess()
+void input_parser::setInitGuessChoice()
 {
-    auto iterator = std::find(tokens.begin(),tokens.end(),"useLaplaceGuess");
+    auto iterator = std::find(tokens.begin(),tokens.end(),"initGuessChoice");
     if (iterator != tokens.cend())
     {
         int pos = std::distance(tokens.begin(),iterator);
-        useLaplaceGuess = std::stoi(tokens[pos+1]);
+        initGuessChoice = std::stoi(tokens[pos+1]);
     }
     else
     {
@@ -400,8 +400,8 @@ double input_parser::getrelaxNewton() {
 }
 
 // Function defined to return the option set for using Laplace solution as the initial guess
-int input_parser::getLaplaceGuess() {
-    return useLaplaceGuess;
+int input_parser::getInitGuessChoice() {
+    return initGuessChoice;
 }
 
 // Function defined to return the option set for Jacobian to be used for the Newton-Raphson Iterations
