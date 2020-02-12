@@ -24,6 +24,8 @@
 #include <stdlib.h>
 #include <string>
 #include <cstdlib>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #define _USE_MATH_DEFINES
 

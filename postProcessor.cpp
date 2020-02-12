@@ -16,10 +16,18 @@ void structuredGridWriter(int iterationIndex, mType z)
     input_parser inputParserObj;
     int N = inputParserObj.getN();
 
+    // Remove directory for every new simulation
+    std::stringstream removedir;
+    removedir << "rm -R " << inputParserObj.getvtkOutLoc();
+    struct stat info;
+    if(iterationIndex == inputParserObj.getfileFreq() || iterationIndex == 1 && stat(removedir.str().c_str(),&info) != 0){
+        system(removedir.str().c_str());
+    }
+
     // Writing the solution output into .vts file
-    std::stringstream ss,dir;
-    dir << "mkdir -p " << inputParserObj.getvtkOutLoc();
-    system(dir.str().c_str());
+    std::stringstream ss,makedir;
+    makedir << "mkdir -p " << inputParserObj.getvtkOutLoc();
+    system(makedir.str().c_str());
     ss << inputParserObj.getvtkOutLoc() << "vtk" << iterationIndex << ".dat";
     std::string filename = ss.str();
 
@@ -87,9 +95,18 @@ void residualWriter(int iterationIndex, dType res)
     input_parser inputParserObj;
     int N = inputParserObj.getN();
 
-    std::stringstream ss,dir;
-    dir << "mkdir -p " << inputParserObj.getresOutLoc();
-    system(dir.str().c_str());
+    // Remove directory for every new simulation
+    std::stringstream removedir;
+    removedir << "rm -R " << inputParserObj.getresOutLoc();
+    struct stat info;
+    if(iterationIndex == inputParserObj.getfileFreq() || iterationIndex == 1 && stat(removedir.str().c_str(),&info) != 0){
+        system(removedir.str().c_str());
+    }
+
+    // Writing the residual to a csv file
+    std::stringstream ss,makedir;
+    makedir << "mkdir -p " << inputParserObj.getresOutLoc();
+    system(makedir.str().c_str());
     
     ss << inputParserObj.getresOutLoc() << "residual" << ".dat";
     std::string filename = ss.str();
