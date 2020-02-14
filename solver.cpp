@@ -10,7 +10,7 @@
 #include"inputParser.h"
 #include"atmsp.h"
 #include"postProcessor.h"
-#include<fstream>
+#include"fstream.h"
 
 // -------------------------------------------------------------------------------------------------
 // Function to set the grid-related properties -> Sankar: extend?
