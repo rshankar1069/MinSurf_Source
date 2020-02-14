@@ -41,7 +41,7 @@ template<class mType, class dType> class solver
         void setMesh( );
         void runSolver( );
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    private:
+    //private:                                         // Removed Private dependency
         // Private variables
         // -----------------
         int N; // number of gridpoints in one dimension
@@ -56,9 +56,8 @@ template<class mType, class dType> class solver
         void applyBC( Eigen::MatrixBase<mType> &inVec );
         
         // Get initial guess by solving -u''=0 in D, u=g on dD via central FD
-        void buildLaplaceMatrix( Eigen::SparseMatrix<dType, Eigen::RowMajor> &laplaceMatrix );
-        void getInitGuess_Average( Eigen::MatrixBase<mType> &zE );
-        void getInitGuess_Laplace( Eigen::MatrixBase<mType> &zE );
+        void buildPoissonMatrix( Eigen::SparseMatrix<dType, Eigen::RowMajor> &poissonMatrix );
+        void getInitGuess( Eigen::MatrixBase<mType> &zE );
         
         // Helper functions for FD stencils
         inline dType getDx( const Eigen::MatrixBase<mType> &inVec, const int index );
@@ -73,31 +72,23 @@ template<class mType, class dType> class solver
         template<class dcoType>
         std::vector<dcoType> minSurfOp_Vector(const std::vector<dcoType> &inVec);
         // Jacobian of minSurf-Operator - hardcoded and AD by hand version
-        void minSurfJac_Symbolic( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian,
+        void minSurfJac_HardCoded( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian,
                                const Eigen::MatrixBase<mType> &inVec);
-        void minSurfJac_HandwrittenAdjoint( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian,
+        void minSurfJac_ADByHand( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian,
                                  Eigen::MatrixBase<mType> &outVec,
                                  const Eigen::MatrixBase<mType> &inVec );
         // Residual function - hardcoded and AD by hand version
-        dType residual_Symbolic( Eigen::MatrixBase<mType> &resVec,
+        dType residual_HardCoded( Eigen::MatrixBase<mType> &resVec,
                                   const Eigen::MatrixBase<mType> &solVec);
-        dType residual_HandwrittenAdjoint( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian,
+        dType residual_ADByHand( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian,
                                  Eigen::MatrixBase<mType> &resVec,
                                  const Eigen::MatrixBase<mType> &solVec);
         template <class vecType>
         dType residual_matFree( const vecType &resVec);
-        // Function for loop-wise solver output 
-        template <class vecType>
-        void writeLoopOutput( const vecType &z, const dType res, const unsigned iteration );
-        // Function to check whether solver is stuck 
-        bool checkProgress( const dType res, const dType lastRes );
-        // Parallel computation of inner product  
-        template <class vecType>
-        dType innerProduct( const vecType inVec1, const vecType inVec2 );
         // Functions to run solver depending on way to determine Jacobian
-        void runSolver_WithMatrix( Eigen::MatrixBase<mType> &z, int jacobianOpt, 
-                                   dType &res, unsigned &iteration );
-        void runSolver_DcoMatrixFree( mType &mz, dType &res, unsigned &iteration );
+        void runSolver_HardCoded( );
+        void runSolver_ADByHand( );
+        void runSolver_ADbyDco( );
         
 };
 
