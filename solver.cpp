@@ -26,8 +26,6 @@ void solver<mType, dType>::setMesh( ) { // @Sankar, maybe play here with the inp
 template <class mType, class dType>
 void solver<mType, dType>::applyBC( Eigen::MatrixBase<mType> &inVec ) {
 
-    input_parser inputParserObj;
-
     ATMSP<dType> parser;
     ATMSB<dType> byteCode;
 

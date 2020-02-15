@@ -8,6 +8,8 @@
 
 #include "inputParser.h"
 
+input_parser inputParserObj;
+
 // Function defined to read the "params.in" file so that the simulation parameters can be read
 void input_parser::readFile(std::string filename)
 {
