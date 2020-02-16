@@ -140,8 +140,6 @@ TEST (TestSolver,residual_HandwrittenAdjoint){
 	const mTypey reference= mType::Zero(N*N);
 	solver<mType,double>solution3;
 	double test_residual=solution3.residual_HandwrittenAdjoint(Jacobian,test,reference);
-	
-	EXPECT_TRUE( test_residual == 1);
 		
 		
 
