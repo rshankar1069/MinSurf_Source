@@ -13,7 +13,6 @@ template<class mType,class dType>
 void structuredGridWriter(int iterationIndex, mType z)
 {
     // Input parser object to get the number of nodes
-    input_parser inputParserObj;
     int N = inputParserObj.getN();
 
     // Remove directory for every new simulation
@@ -92,7 +91,6 @@ void structuredGridWriter(int iterationIndex, mType z)
 template <class dType>
 void residualWriter(int iterationIndex, dType res)
 {
-    input_parser inputParserObj;
     int N = inputParserObj.getN();
 
     // Remove directory for every new simulation

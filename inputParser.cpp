@@ -8,6 +8,8 @@
 
 #include "inputParser.h"
 
+input_parser inputParserObj;
+
 // Function defined to read the "params.in" file so that the simulation parameters can be read
 void input_parser::readFile(std::string filename)
 {
@@ -200,13 +202,13 @@ void input_parser::setTOL_linsolver()
 }
 
 // Function defined to set the option of using Laplace solution as the initial guess
-void input_parser::setInitGuessChoice()
+void input_parser::setLaplaceGuess()
 {
-    auto iterator = std::find(tokens.begin(),tokens.end(),"initGuessChoice");
+    auto iterator = std::find(tokens.begin(),tokens.end(),"useLaplaceGuess");
     if (iterator != tokens.cend())
     {
         int pos = std::distance(tokens.begin(),iterator);
-        initGuessChoice = std::stoi(tokens[pos+1]);
+        useLaplaceGuess = std::stoi(tokens[pos+1]);
     }
     else
     {
@@ -400,8 +402,8 @@ double input_parser::getrelaxNewton() {
 }
 
 // Function defined to return the option set for using Laplace solution as the initial guess
-int input_parser::getInitGuessChoice() {
-    return initGuessChoice;
+int input_parser::getLaplaceGuess() {
+    return useLaplaceGuess;
 }
 
 // Function defined to return the option set for Jacobian to be used for the Newton-Raphson Iterations

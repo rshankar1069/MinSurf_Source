@@ -10,7 +10,7 @@
 #include"inputParser.h"
 #include"atmsp.h"
 #include"postProcessor.h"
-#include"fstream.h"
+#include<fstream>
 
 // -------------------------------------------------------------------------------------------------
 // Function to set the grid-related properties -> Sankar: extend?
@@ -25,8 +25,6 @@ void solver<mType, dType>::setMesh( ) { // @Sankar, maybe play here with the inp
 // Function to apply boundary conditions - needs to be extended -> Sankar
 template <class mType, class dType>
 void solver<mType, dType>::applyBC( Eigen::MatrixBase<mType> &inVec ) {
-
-    input_parser inputParserObj;
 
     ATMSP<dType> parser;
     ATMSB<dType> byteCode;
@@ -110,132 +108,132 @@ void solver<mType, dType>::applyBC( Eigen::MatrixBase<mType> &inVec ) {
 // -------------------------------------------------------------------------------------------------
 // Method to build laplace matrix
 template <class mType, class dType>
-void solver<mType, dType>::buildLaplaceMatrix( Eigen::SparseMatrix<dType, Eigen::RowMajor> &laplaceMatrix ) { 
+void solver<mType, dType>::buildLaplaceMatrix( Eigen::SparseMatrix<dType, Eigen::RowMajor> &poissonMatrix ) { 
     
-    typedef Eigen::Triplet<dType> triplet;
-    std::vector<triplet> tripletList;
-    tripletList.reserve(5*N*N);
- 
-    int length = (int) grid.innerNodeList.size();
-     
-    // Assemble the FD matrix (should work, validated with matlab)
-    #pragma omp parallel if(N>=5*NminParallel)
-    {
-       std::vector<triplet> tripletListLoc;
-       // Set inner nodes - 5-pt stencil of FD (there should not be an issue with reaching 
-       // the limits of the matrix...)
-       tripletList.reserve( (int) 6*N*N/numThreads); // 6* here to have a conservative estimate
-       #pragma omp for nowait 
-       for(int index=0; index < length; index++) {
-           int i = grid.innerNodeList[index];
-           tripletListLoc.push_back(triplet(i ,i   , 4./(h*h) ));
-           tripletListLoc.push_back(triplet(i ,i+1 ,-1./(h*h) ));
-           tripletListLoc.push_back(triplet(i ,i-1 ,-1./(h*h) ));
-           tripletListLoc.push_back(triplet(i ,i+N ,-1./(h*h) ));
-           tripletListLoc.push_back(triplet(i ,i-N ,-1./(h*h) ));
-       }
-   
-       // Set a 1 where Dirichlet BC applies
-       #pragma omp sections nowait
-       {
-         // Bottom
-         #pragma omp section
-         {
-           for(auto& i: grid.bdryNodeList.bottom)
-               tripletListLoc.push_back(triplet(i, i, 1.));
-         } 
-         // Right
-         #pragma omp section
-         {
-           for(auto& i: grid.bdryNodeList.right)
-               tripletListLoc.push_back(triplet(i, i, 1.));
-         } 
-         // Top
-         #pragma omp section
-         {
-           for(auto& i: grid.bdryNodeList.top)
-               tripletListLoc.push_back(triplet(i, i, 1.));
-         } 
-         // Left
-         #pragma omp section
-         {
-           for(auto& i: grid.bdryNodeList.left)
-               tripletListLoc.push_back(triplet(i, i, 1.));
-         } 
-       }
+   typedef Eigen::Triplet<dType> triplet;
+   std::vector<triplet> tripletList;
+   tripletList.reserve(5*N*N);
+
+   int length = (int) grid.innerNodeList.size();
+    
+   // Assemble the FD matrix (should work, validated with matlab)
+   #pragma omp parallel if(N>=5*NminParallel)
+   {
+      std::vector<triplet> tripletListLoc;
+      // Set inner nodes - 5-pt stencil of FD (there should not be an issue with reaching 
+      // the limits of the matrix...)
+      tripletList.reserve( (int) 6*N*N/numThreads); // 6* here to have a conservative estimate
+      #pragma omp for nowait 
+      for(int index=0; index < length; index++) {
+          int i = grid.innerNodeList[index];
+          tripletListLoc.push_back(triplet(i ,i   , 4./(h*h) ));
+          tripletListLoc.push_back(triplet(i ,i+1 ,-1./(h*h) ));
+          tripletListLoc.push_back(triplet(i ,i-1 ,-1./(h*h) ));
+          tripletListLoc.push_back(triplet(i ,i+N ,-1./(h*h) ));
+          tripletListLoc.push_back(triplet(i ,i-N ,-1./(h*h) ));
+      }
   
-        // Combine local triplet list to global one
-        #pragma omp critical
+      // Set a 1 where Dirichlet BC applies
+      #pragma omp sections nowait
+      {
+        // Bottom
+        #pragma omp section
         {
-          std::move(tripletListLoc.begin(), tripletListLoc.end(),
-                   std::back_inserter(tripletList) );
-          tripletListLoc.clear();
-        }
-  
-     }
-     // Build sparse A from triplets
-     laplaceMatrix.setFromTriplets(tripletList.begin(), tripletList.end());
+          for(auto& i: grid.bdryNodeList.bottom)
+              tripletListLoc.push_back(triplet(i, i, 1.));
+        } 
+        // Right
+        #pragma omp section
+        {
+          for(auto& i: grid.bdryNodeList.right)
+              tripletListLoc.push_back(triplet(i, i, 1.));
+        } 
+        // Top
+        #pragma omp section
+        {
+          for(auto& i: grid.bdryNodeList.top)
+              tripletListLoc.push_back(triplet(i, i, 1.));
+        } 
+        // Left
+        #pragma omp section
+        {
+          for(auto& i: grid.bdryNodeList.left)
+              tripletListLoc.push_back(triplet(i, i, 1.));
+        } 
+      }
+ 
+       // Combine local triplet list to global one
+       #pragma omp critical
+       {
+         std::move(tripletListLoc.begin(), tripletListLoc.end(),
+                  std::back_inserter(tripletList) );
+         tripletListLoc.clear();
+       }
+ 
+    }
+    // Build sparse A from triplets
+    poissonMatrix.setFromTriplets(tripletList.begin(), tripletList.end());
+    //~std::cout << poissonMatrix << std::endl;
 }
 
 // -------------------------------------------------------------------------------------------------
 // Method to get initial guess for Newton iterations
-// Prescribe average boundary value on the entire grid 
 template <class mType, class dType>
-void solver<mType, dType>::getInitGuess_Average( Eigen::MatrixBase<mType> &z ){
+void solver<mType, dType>::getInitGuess( Eigen::MatrixBase<mType> &z ){
     
-    applyBC(z);
-    dType ave=0;
-    #pragma omp parallel if(N>=5*NminParallel)
-    {
-      dType aveLoc=0;
-      #pragma omp sections nowait
-      {
-        #pragma omp section
-        {
-        for (auto& i: grid.bdryNodeList.bottom) aveLoc += z[i]; 
-        }
-        #pragma omp section
-        {
-        for (auto& i: grid.bdryNodeList.right)  aveLoc += z[i]; 
-        }
-        #pragma omp section
-        {
-        for (auto& i: grid.bdryNodeList.top)    aveLoc += z[i]; 
-        }
-        #pragma omp section
-        {
-        for (auto& i: grid.bdryNodeList.left)   aveLoc += z[i]; 
-        }
-      }
-      #pragma omp atomic
-      ave += aveLoc;
+    // If initialGuess == 1, use average initial guess
+    if ( inputParserObj.getLaplaceGuess() == 1 ) {
+       applyBC(z);
+       dType ave=0;
+       #pragma omp parallel if(N>=5*NminParallel)
+       {
+         dType aveLoc=0;
+         #pragma omp sections nowait
+         {
+           #pragma omp section
+           {
+           for (auto& i: grid.bdryNodeList.bottom) aveLoc += z[i]; 
+           }
+           #pragma omp section
+           {
+           for (auto& i: grid.bdryNodeList.right)  aveLoc += z[i]; 
+           }
+           #pragma omp section
+           {
+           for (auto& i: grid.bdryNodeList.top)    aveLoc += z[i]; 
+           }
+           #pragma omp section
+           {
+           for (auto& i: grid.bdryNodeList.left)   aveLoc += z[i]; 
+           }
+         }
+         #pragma omp atomic
+         ave += aveLoc;
+       }
+       // Compute average over boundary values and set all inner z to average
+       ave /= 4*(N-1);
+       for (auto& i: grid.innerNodeList) {
+         z[i] = ave;
+       }
     }
-    // Compute average over boundary values and set all inner z to average
-    ave /= 4*(N-1);
-    for (auto& i: grid.innerNodeList) {
-      z[i] = ave;
+    // Else if InitGuess = 1, use solution for Laplace's equation 
+    else if( inputParserObj.getLaplaceGuess() == 2 ) {
+  
+        // Prepare RHS
+        mType b = mType::Zero(N*N);
+        applyBC(b);
+   
+        // Build Laplace-matrix 
+        Eigen::SparseMatrix<dType, Eigen::RowMajor> poissonMatrix(N*N, N*N);
+        buildLaplaceMatrix(poissonMatrix);
+
+        // Solve the Laplace equation using BiCGSTAB 
+        Eigen::setNbThreads(numThreads);
+        Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
+        bicgstab.setTolerance(TOL_linsolver);
+        z = bicgstab.compute(poissonMatrix).solve(b);
     }
-
-}
-
-// -------------------------------------------------------------------------------------------------
-// Method to get Laplace initial guess for Newton iterations
-template <class mType, class dType>
-void solver<mType, dType>::getInitGuess_Laplace( Eigen::MatrixBase<mType> &z ){
     
-    // Prepare RHS
-    mType b = mType::Zero(N*N);
-    applyBC(b);
-
-    // Build Laplace-matrix 
-    Eigen::SparseMatrix<dType, Eigen::RowMajor> laplaceMatrix(N*N, N*N);
-    buildLaplaceMatrix(laplaceMatrix);
-
-    // Solve the Laplace equation using BiCGSTAB 
-    Eigen::setNbThreads(numThreads);
-    Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
-    bicgstab.setTolerance(TOL_linsolver);
-    z = bicgstab.compute(laplaceMatrix).solve(b);
 }
 
 
@@ -294,24 +292,23 @@ inline dType solver<mType, dType>::getDxy( const Eigen::MatrixBase<mType> &inVec
 template <class mType, class dType> 
 void solver<mType, dType>::minSurfOp( Eigen::MatrixBase<mType> &outVec, 
                                                             const Eigen::MatrixBase<mType> &inVec) {
-    dType tmp = 0;
- 
-    int length = (int) grid.innerNodeList.size();
-    #pragma omp parallel for firstprivate(tmp) if(N>=5*NminParallel) 
-    for(int index=0; index<length; index++) {
-        int i = grid.innerNodeList[index];
-        // tmp = (1+z_x^2)*z_yy
-        tmp = (1 + pow(getDx(inVec, i), 2))
-                     * getDyy(inVec, i);
-        // tmp -= 2*z_x*z_y*z_xy
-        tmp -= 2*  getDx(inVec, i) // z_x
-                *  getDy(inVec, i) // z_y
-                * getDxy(inVec, i); // z_xy
-        // tmp += (1+z_y^2)*z_xx
-        tmp += (1 + pow(getDy(inVec, i), 2))
-                      * getDxx(inVec, i);
+   dType tmp = 0;
 
-        outVec[i] = tmp;
+   int length = (int) grid.innerNodeList.size();
+   #pragma omp parallel for firstprivate(tmp) if(N>=5*NminParallel) 
+   for(int index=0; index<length; index++) {
+       int i = grid.innerNodeList[index];
+       // tmp = (1+z_x^2)*z_yy
+       tmp = (1 + pow(getDx(inVec, i), 2))
+                    * getDyy(inVec, i);
+       // tmp -= 2*z_x*z_y*z_xy
+       tmp -= 2*  getDx(inVec, i) // z_x
+               *  getDy(inVec, i) // z_y
+               * getDxy(inVec, i); // z_xy
+       // tmp += (1+z_y^2)*z_xx
+       tmp += (1 + pow(getDy(inVec, i), 2))
+                     * getDxx(inVec, i);
+
    }
 
 }
@@ -322,23 +319,23 @@ template <class mType, class dType>
 template <class dcoType> 
 std::vector<dcoType> solver<mType, dType>::minSurfOp_Vector(const std::vector<dcoType> &inVec) {
     
-    std::vector<dcoType> outVec(N*N);
-    int length = (int) grid.innerNodeList.size();
-    #pragma omp parallel for if(N>=NminParallel)  // tangents are thread-safe
-    for(int index=0; index<length; index++) {
-        int i = grid.innerNodeList[index];
-        // tmp = (1+z_x^2)*z_yy
-        outVec[i] = (1 + pow((inVec[i+1] - inVec[i-1]) / (2*h), 2))
-                     * (inVec[i+N] -2*inVec[i] + inVec[i-N]) / (h*h) \
-        // tmp -= 2*z_x*z_y*z_xy
-        - 2*  (inVec[i+1] - inVec[i-1]) / (2*h) // z_x
-                *  (inVec[i+N] - inVec[i-N]) / (2*h) // z_y
-                * (inVec[i+1+N] + inVec[i-1-N] - inVec[i+1-N] - inVec[i-1+N]) / (4*h*h) // z_xy \
-        // tmp += (1+z_y^2)*z_xx
-        + (1 + pow((inVec[i+N] - inVec[i-N]) / (2*h), 2))
-                      * (inVec[i+1] -2*inVec[i] + inVec[i-1]) / (h*h);
-    }
-    return outVec;
+   std::vector<dcoType> outVec(N*N);
+   int length = (int) grid.innerNodeList.size();
+   #pragma omp parallel for if(N>=NminParallel)  // tangents are thread-safe
+   for(int index=0; index<length; index++) {
+       int i = grid.innerNodeList[index];
+       // tmp = (1+z_x^2)*z_yy
+       outVec[i] = (1 + pow((inVec[i+1] - inVec[i-1]) / (2*h), 2))
+                    * (inVec[i+N] -2*inVec[i] + inVec[i-N]) / (h*h) \
+       // tmp -= 2*z_x*z_y*z_xy
+       - 2*  (inVec[i+1] - inVec[i-1]) / (2*h) // z_x
+               *  (inVec[i+N] - inVec[i-N]) / (2*h) // z_y
+               * (inVec[i+1+N] + inVec[i-1-N] - inVec[i+1-N] - inVec[i-1+N]) / (4*h*h) // z_xy \
+       // tmp += (1+z_y^2)*z_xx
+       + (1 + pow((inVec[i+N] - inVec[i-N]) / (2*h), 2))
+                     * (inVec[i+1] -2*inVec[i] + inVec[i-1]) / (h*h);
+   }
+   return outVec;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -346,82 +343,82 @@ std::vector<dcoType> solver<mType, dType>::minSurfOp_Vector(const std::vector<dc
 template <class mType, class dType> 
 void solver<mType, dType>::minSurfJac_Symbolic( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian,
                                                             const Eigen::MatrixBase<mType> &inVec) {
-    typedef Eigen::Triplet<dType> triplet;
-    std::vector<triplet> tripletList;
-    tripletList.reserve(9*N*N);
-    
-     // Fill Jacobian
-    #pragma omp parallel num_threads(numThreads) if(N>=NminParallel)
-    {
-      // Divide work among threads -> get numThreads heavy loops and only
-      //                              numThreads times communication necessary
-      //                              setFromTriplets does not need triplets ordered
-      int me = omp_get_thread_num(); 
-      int my_start = ( me ) * grid.innerNodeList.size()/numThreads;
-      int my_end   = (me+1) * grid.innerNodeList.size()/numThreads;
-      if (me == numThreads-1 || N<NminParallel)
-          my_end = (int) grid.innerNodeList.size();
-      
-      // Build triplets locally
-      std::vector<triplet> tripletListLoc;
-      tripletListLoc.reserve( (int) 10*N*N/numThreads);
-      dType dx, dy, dxx, dyy, dxy;
-      for(int index = my_start; index < my_end; index++) {
-          int i = grid.innerNodeList[index];
-          dx = getDx(inVec, i);
-          dy = getDy(inVec, i);
-          dxx = getDxx(inVec, i);
-          dyy = getDyy(inVec, i);
-          dxy = getDxy(inVec, i);
-          tripletListLoc.push_back(triplet( i, i, 
-                                             -2./(h*h)*(1+pow(dx, 2)) 
-                                             -2./(h*h)*(1+pow(dy, 2))
-                                             ));
-          tripletListLoc.push_back(triplet( i, i+1, 
-                                              2./(2*h)*dx*dyy
-                                             +1./(h*h)*(1+pow(dy, 2))
-                                             -2.*( 1/(2*h) * dy*dxy)
-                                             ));
-          tripletListLoc.push_back(triplet( i, i-1, 
-                                             -2./(2*h)*dx*dyy
-                                             +1./(h*h)*(1+pow(dy, 2))
-                                             +2.*( 1/(2*h) * dy*dxy)
-                                             ));
-          tripletListLoc.push_back(triplet( i, i+N,
-                                              1./(h*h)*(1+pow(dx, 2))
-                                             +2./(2*h)*dy*dxx
-                                             -2.*(1/(2*h) * dx*dxy)
-                                             ));
-          tripletListLoc.push_back(triplet( i, i-N,
-                                              1./(h*h)*(1+pow(dx, 2))
-                                             -2./(2*h)*dy*dxx
-                                             +2.*(1/(2*h) * dx*dxy)
-                                             ));
-          tripletListLoc.push_back(triplet( i, i+1+N,
-                                             -2./(4*h*h)*dx*dy
-                                             ));
-          tripletListLoc.push_back(triplet( i, i-1+N,
-                                              2/(4*h*h)*dx*dy
-                                             ));
-          tripletListLoc.push_back(triplet( i, i+1-N,
-                                              2./(4*h*h)*dx*dy
-                                             ));
-          tripletListLoc.push_back(triplet( i, i-1-N,
-                                        -2./(4*h*h)*dx*dy
-                                        ));
-          }
-          // Combine local triplet list to global one
-          #pragma omp critical
-          {
-            std::move(tripletListLoc.begin(), tripletListLoc.end(),
-                      std::back_inserter(tripletList) );
-            tripletListLoc.clear();
-          }
-    }
-          
-    // Build sparse matrix from triplets
-    Jacobian.setFromTriplets(tripletList.begin(), tripletList.end(),
-    [] (const dType &a, const dType &b) { return b; }); 
+   typedef Eigen::Triplet<dType> triplet;
+   std::vector<triplet> tripletList;
+   tripletList.reserve(9*N*N);
+   
+    // Fill Jacobian
+   #pragma omp parallel num_threads(numThreads) if(N>=NminParallel)
+   {
+     // Divide work among threads -> get numThreads heavy loops and only
+     //                              numThreads times communication necessary
+     //                              setFromTriplets does not need triplets ordered
+     int me = omp_get_thread_num(); 
+     int my_start = ( me ) * grid.innerNodeList.size()/numThreads;
+     int my_end   = (me+1) * grid.innerNodeList.size()/numThreads;
+     if (me == numThreads-1 || N<NminParallel)
+         my_end = (int) grid.innerNodeList.size();
+     
+     // Build triplets locally
+     std::vector<triplet> tripletListLoc;
+     tripletListLoc.reserve( (int) 10*N*N/numThreads);
+     dType dx, dy, dxx, dyy, dxy;
+     for(int index = my_start; index < my_end; index++) {
+         int i = grid.innerNodeList[index];
+         dx = getDx(inVec, i);
+         dy = getDy(inVec, i);
+         dxx = getDxx(inVec, i);
+         dyy = getDyy(inVec, i);
+         dxy = getDxy(inVec, i);
+         tripletListLoc.push_back(triplet( i, i, 
+                                            -2./(h*h)*(1+pow(dx, 2)) 
+                                            -2./(h*h)*(1+pow(dy, 2))
+                                            ));
+         tripletListLoc.push_back(triplet( i, i+1, 
+                                             2./(2*h)*dx*dyy
+                                            +1./(h*h)*(1+pow(dy, 2))
+                                            -2.*( 1/(2*h) * dy*dxy)
+                                            ));
+         tripletListLoc.push_back(triplet( i, i-1, 
+                                            -2./(2*h)*dx*dyy
+                                            +1./(h*h)*(1+pow(dy, 2))
+                                            +2.*( 1/(2*h) * dy*dxy)
+                                            ));
+         tripletListLoc.push_back(triplet( i, i+N,
+                                             1./(h*h)*(1+pow(dx, 2))
+                                            +2./(2*h)*dy*dxx
+                                            -2.*(1/(2*h) * dx*dxy)
+                                            ));
+         tripletListLoc.push_back(triplet( i, i-N,
+                                             1./(h*h)*(1+pow(dx, 2))
+                                            -2./(2*h)*dy*dxx
+                                            +2.*(1/(2*h) * dx*dxy)
+                                            ));
+         tripletListLoc.push_back(triplet( i, i+1+N,
+                                            -2./(4*h*h)*dx*dy
+                                            ));
+         tripletListLoc.push_back(triplet( i, i-1+N,
+                                             2/(4*h*h)*dx*dy
+                                            ));
+         tripletListLoc.push_back(triplet( i, i+1-N,
+                                             2./(4*h*h)*dx*dy
+                                            ));
+         tripletListLoc.push_back(triplet( i, i-1-N,
+                                       -2./(4*h*h)*dx*dy
+                                       ));
+         }
+         // Combine local triplet list to global one
+         #pragma omp critical
+         {
+           std::move(tripletListLoc.begin(), tripletListLoc.end(),
+                     std::back_inserter(tripletList) );
+           tripletListLoc.clear();
+         }
+   }
+         
+   // Build sparse matrix from triplets
+   Jacobian.setFromTriplets(tripletList.begin(), tripletList.end(),
+   [] (const dType &a, const dType &b) { return b; }); 
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -554,12 +551,16 @@ dType solver<mType, dType>::residual_Symbolic( Eigen::MatrixBase<mType> &resVec,
     // the boundary information on the bdryNodeList
     minSurfOp(resVec, solVec);
         
-    dType res = std::sqrt(innerProduct<mType>(resVec, resVec));
-   
-    return res;
+    dType res = 0;
+    int length = (int) grid.innerNodeList.size();
+    #pragma omp parallel for reduction(+:res) if(N>=5*NminParallel)
+    for(int index=0; index<length; index++)
+        res += pow(resVec[grid.innerNodeList[index]], 2);
+
+    return sqrt(res);
 }
 
-// Get residual - AD by hand (mimicks overloading)
+// Get residual - AD by hand
 template <class mType, class dType>
 dType solver<mType, dType>::residual_HandwrittenAdjoint( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian, 
                                       Eigen::MatrixBase<mType> &resVec,
@@ -571,10 +572,15 @@ dType solver<mType, dType>::residual_HandwrittenAdjoint( Eigen::SparseMatrix<dTy
     // r^h contains the residual, which shall go to zero, in the innerNodeList, and 
     // the boundary information on the bdryNodeList
     minSurfJac_HandwrittenAdjoint(Jacobian, resVec, solVec);
+    //~std::cout << resVec << std::endl;     
         
-    dType res = std::sqrt(innerProduct<mType>(resVec, resVec));
+    dType res = 0;
+    int length = (int) grid.innerNodeList.size();
+    #pragma omp parallel for reduction(+:res) if(N>=5*NminParallel)
+    for(int index=0; index<length; index++)
+        res += pow(resVec[grid.innerNodeList[index]], 2);
 
-    return res;
+    return sqrt(res);
 }
 
 // Get residual - matrix free 
@@ -582,254 +588,326 @@ template <class mType, class dType>
 template <class vecType>
 dType solver<mType, dType>::residual_matFree( const vecType &resVec) {
     // returns norm of r
-    dType res = std::sqrt(innerProduct(resVec, resVec));
+    dType res = 0;
+    int length = (int) grid.innerNodeList.size();
+    #pragma omp parallel for reduction(+:res) if(N>=NminParallel)
+    for(int index=0; index<length; index++)
+        res += pow(resVec[grid.innerNodeList[index]], 2);
 
-    return res;
+    return sqrt(res);
 }
+
 
 
 
 // -------------------------------------------------------------------------------------------------
-// Functions to run solver loop
-// Options:
-// Symbolic differentiation, handwritten adjoint, 
-// Matrix-free tangent version using dco_c++ 
- 
+// Functions to run solver
+// Hardcoded and AD by hand versions
 
-// Misc functions 
-// °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
-// Write solver output
+// Run solver using hardcoded Jacobian
 template<class mType, class dType>
-template<class vecType>
-void solver<mType, dType>::writeLoopOutput( const vecType &z, const dType res, const unsigned iteration ) {
+void solver<mType, dType>::runSolver_Symbolic( ) {
 
-   if(inputParserObj.getfileFreq() > 0) {
-       // Writing the output data
-       if( !(iteration%inputParserObj.getfileFreq()) ) {
-           // Writing the vtk files for visualization
-           structuredGridWriter<vecType, dType>(iteration, z);
-           // Writing the residual vs. iteration number into a csv file
-           residualWriter<dType>(iteration,res);
+   mType z = mType::Zero(N*N);
+   
+ 
+   std::cout << "Chose to run";
+   if (inputParserObj.getLaplaceGuess()) {
+       std::cout << " with non-trivial initial guess." << std::endl;
+       getInitGuess(z); 
+   }
+   else {
+       std::cout << " with trivial initial guess." << std::endl;
+       applyBC(z);
+   }
+  
+   dType res;
+   mType resVec = mType::Zero(N*N);
+   mType dz = mType::Zero(N*N); 
+   Eigen::SparseMatrix<dType, Eigen::RowMajor> Jacobian(N*N, N*N);
+   
+   res = residual_Symbolic(resVec, z);
+      
+   std::cout << "Starting residual: " << res << std::endl;
+   
+   dType omega = inputParserObj.getrelaxNewton(); // Relaxation parameter for Newton-Raphson
 
+   unsigned iterationIndex = 0;
+
+   // In case initial guess was not horrifically lucky, run Newton-Raphson
+   do { 
+       
+       // get Jacobian
+       minSurfJac_Symbolic(Jacobian, z);
+      
+       // dz_n = grad[F(z_n)]^-1 * F(z_n)
+       // To be played with: preconditioner (MUST), 
+       // initial guess (maybe inversion of the Laplace-gradient might also help, but no idea), 
+       //     tolerance (MUST).. should not be too high, as our main goal is the result of Newton
+       Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
+       bicgstab.setTolerance(TOL_linsolver);
+       bicgstab.compute(Jacobian);
+       dz = bicgstab.solve(resVec);
+
+       // z_{n+1} = z_n - dz
+       z -= omega*dz; 
+   
+       // get residual and resVec -> F(z_n)
+       res = residual_Symbolic(resVec, z);
+       
+       iterationIndex++;
+       if(inputParserObj.getfileFreq() > 0) {
+           // Writing the output data
+           if( !(iterationIndex%inputParserObj.getfileFreq())) {
+               // Writing the vtk files for visualization
+               structuredGridWriter<mType,dType>(iterationIndex,z);
+               // Writing the residual vs. iteration number into a csv file
+               residualWriter<dType>(iterationIndex,res);
+
+           }
        }
-   } 
-   std::cout << "\tIteration: " << iteration  << "\tresidual: " << res << std::endl;
+       std::cout << "\tIteration: " << iterationIndex  << "\tresidual: " << res << std::endl;
+
+   } while (res > inputParserObj.getTOL_Newton() && 
+            iterationIndex < inputParserObj.getmaxIters());
+
+   std::cout << "Stopped after " << iterationIndex << " iterations with a residual of "
+             << res << "." << std::endl;
+   
+   // Writing final output data
+   structuredGridWriter<mType,dType>(iterationIndex,z);
+
+   // Writing the residual vs. iteration number of the final solution into a csv file
+   residualWriter<dType>(iterationIndex,res);
 
 }
 
-// Check solver progress
-// Returns True, if difference between current and last residual is very small 
+// Run solver using AD by hand
 template<class mType, class dType>
-bool solver<mType, dType>::checkProgress( const dType res, const dType lastRes ) {
+void solver<mType, dType>::runSolver_HandwrittenAdjoint( ) {
+   mType z = mType::Zero(N*N);
+   
+   std::cout << "Chose to run";
+   if (inputParserObj.getLaplaceGuess()) {
+       std::cout << " with non-trivial initial guess." << std::endl;
+       getInitGuess(z); 
+   }
+   else {
+       std::cout << " with trivial initial guess." << std::endl;
+       applyBC(z);
+   }
+ 
+   dType res;
+   mType resVec = mType::Zero(N*N);
+   mType dz = mType::Zero(N*N); 
+   Eigen::SparseMatrix<dType, Eigen::RowMajor> Jacobian(N*N, N*N);
+   
+   // Determine initial residual + Jacobian 
+   res = residual_HandwrittenAdjoint(Jacobian, resVec, z);
+       
+   std::cout << "Starting residual: " << res << std::endl;
+   
+   dType omega = inputParserObj.getrelaxNewton(); // Relaxation parameter for Newton-Raphson
+   
+   unsigned iterationIndex = 0;
+   // In case initial guess was not horrifically lucky, run Newton-Raphson
+   do { 
+       // dz_n = grad[F(z_n)]^-1 * F(z_n)
+       // To be played with: preconditioner (MUST), 
+       // initial guess (maybe inversion of the Laplace-gradient might also help, but no idea), 
+       //     tolerance (MUST).. should not be too high, as our main goal is the result of Newton
+       Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
+       bicgstab.setTolerance(TOL_linsolver);
+       bicgstab.compute(Jacobian);
+       dz = bicgstab.solve(resVec);
 
-    bool out;
-    if (std::fabs(res-lastRes)/res < 5e-2 && res > lastRes) {
-        out = true;
-        std::cout << "\tSolver is not making any progress. Aborting..." << std::endl;
-    }
-    else 
-        out = false; 
+       // z_{n+1} = z_n - dz
+       z -= omega*dz; 
+   
+       // get residual and resVec -> F(z_n)
+       res = residual_HandwrittenAdjoint(Jacobian, resVec, z);
+       
+       iterationIndex++;
+       if(inputParserObj.getfileFreq() > 0) {
+           // Writing the output data
+           if( !(iterationIndex%inputParserObj.getfileFreq()) ) {
+               // Writing the vtk files for visualization
+               structuredGridWriter<mType,dType>(iterationIndex,z);
+               // Writing the residual vs. iteration number into a csv file
+               residualWriter<dType>(iterationIndex,res);
+         }
+       }
+       std::cout << "\tIteration: " << iterationIndex  << "\tresidual: " << res << std::endl;
 
+   } while (res > inputParserObj.getTOL_Newton() && 
+            iterationIndex < inputParserObj.getmaxIters());
 
-    return out;
+   std::cout << "Stopped after " << iterationIndex << " iterations with a residual of "
+             << res << "." << std::endl;
+
+   // Writing final output data
+   structuredGridWriter<mType,dType>(iterationIndex,z);
+
+   // Writing the residual vs. iteration number of the final solution into a csv file
+   residualWriter<dType>(iterationIndex,res);
 
 }
 
-// Parallel version of inner product
+// Run solver using AD by dco_c++
 template<class mType, class dType>
-template<class vecType>
-dType solver<mType, dType>::innerProduct( const vecType inVec1, const vecType inVec2 ) {
-    
-    dType out=0;
+void solver<mType, dType>::runSolver_DcoMatrixFree( ) {
 
-    // Check if dimensions of inVecs align
-    if (inVec1.size() != inVec2.size()) {
-        std::cout << "++++++++++ ERROR!! Vectors for computation of inner product have"
-                  << " different dimension. Exiting the program ++++++++++" << std::endl;
-        exit(EXIT_FAILURE); 
-    }
-    int length = (int) inVec1.size();
-    #pragma omp parallel for reduction(+:out) if(N>=NminParallel)
-    for(int i=0; i<inVec1.size(); i++) {
-        out += inVec1[i]*inVec2[i];
-    }
+   mType mz = mType::Zero(N*N);
+   std::cout << "Chose to run";
+   if (inputParserObj.getLaplaceGuess()) {
+       std::cout << " with non-trivial initial guess." << std::endl;
+       getInitGuess(mz); 
+   }
+   else {
+       std::cout << " with trivial initial guess." << std::endl;
+       applyBC(mz);
+   }
 
-    return out;
+   std::vector<dType> z(N*N);
+   for (int i=0; i<N*N; i++)
+       z[i] = mz[i];
 
-}
+   typedef typename dco::gt1s<dType>::type ADtype;
+   std::vector<ADtype> yt;
+   unsigned iterationIndex = 0;
+
+   // CG solver -- maybe reuse if we use a switch "symmetric"
+   /* dType a, b, r2, r2old, res;
+   std::vector<dType> dz(N*N, 0.0), dy, p(N*N, 0.0), r;
+   do {
+       // initialise vector r
+       std::vector<ADtype> zt(std::begin(z), std::end(z));
+       for (auto& i: grid.innerNodeList)
+           dco::derivative(zt)[i] = dz[i]; // init z^(1) = dz
+       yt = minSurfOp_Vector(zt); // (y, y^(1)) = F^(1)(x, x^(1));
+       for (auto& i: grid.innerNodeList)
+           p[i] = -1.0*dco::value(yt)[i]-1.0*dco::derivative(yt)[i];
+       r = p;
+
+       // calculate residual
+       res = 0;
+       for (auto& i: grid.innerNodeList)
+           res += pow(dco::value(yt)[i], 2);
+       res = std::sqrt(res);
+       
+       // initiailise |r|^2
+       r2 = std::inner_product(r.begin(), r.end(), r.begin(), 0.0);
+       r2old = r2;
+
+       // matrix solver (CG)
+       while (r2 > 1.e-16) {
+           for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = p[i];
+           yt = f(zt);
+           std::vector<dType> dy = dco::derivative(yt);
+           a = r2old / std::inner_product(p.begin(), p.end(), dy.begin(), 0.0); // a = (r*r)/(p*y^(1))
+           for (auto& i: grid.innerNodeList) {
+               dz[i] += a*p[i]; // dz += a*p
+               r[i] -= a*dy[i]; // r -= a*y^(1)
+           }
+           r2 = std::inner_product(r.begin(), r.end(), r.begin(), 0.0); // (r*r)
+           b = r2/r2old;
+           r2old = r2;
+           for (auto& i: grid.innerNodeList) p[i] = r[i] + b*p[i]; // p = r+b*p
+       }
+   
+       // update z
+       for (auto& i: grid.innerNodeList)
+           z[i] += dz[i];
+
+       if( !(iterationIndex%1))
+           std::cout << "\tAt iteration " << iterationIndex  << " res is " << res << std::endl;
+       iterationIndex++;
+   } while (res > 1.e-6 && iterationIndex < 100); */
+
+   // BiCGSTAB solver
+   dType rho, rho_new, a, b, w, res, res1;
+   std::vector<dType> dz(N*N, 0.0), v(N*N, 0.0), p(N*N, 0.0), r(N*N, 0.0),\
+   s(N*N, 0.0), t(N*N, 0.0), r0(N*N, 0.0), z1(N*N, 0.0), y(N*N, 0.0);
+   while (iterationIndex < 100) {
+       
+       std::vector<ADtype> zt(std::begin(z), std::end(z));
+       for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = dz[i];
+       yt = minSurfOp_Vector(zt); // (y, y^(1)) = F^(1)(x, x^(1));
+
+       // calculate residual
+       res = residual_matFree(dco::value(yt));
+       if (res < inputParserObj.getTOL_Newton()) break;
+
+       // initialisation
+       for (auto& i: grid.innerNodeList) {
+           p[i] = -1.0*dco::value(yt)[i]-1.0*dco::derivative(yt)[i];
+       }
+       r = p; r0 = r; std::vector<dType> p(N*N, 0.0); rho = 1; a = 1; w = 1;
+
+       // matrix free solver (BiCGSTAB)
+       while (std::inner_product(r.begin(), r.end(), r.begin(), 0.0) > 1.e-16) {
+           rho_new = std::inner_product(r0.begin(), r0.end(), r.begin(), 0.0);
+           b = (rho_new/rho) * (a/w);
+           rho = rho_new;
+           for (auto& i: grid.innerNodeList) p[i] = r[i] + b*(p[i]-w*v[i]);
+           for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = p[i];
+           yt = minSurfOp_Vector(zt);
+           v = dco::derivative(yt);
+           a = rho / std::inner_product(r0.begin(), r0.end(), v.begin(), 0.0);
+           for (auto& i: grid.innerNodeList) {
+               dz[i] += a*p[i];
+               s[i] = r[i]-a*v[i];
+           }
+           // calculate res (intermediate)
+           for (auto& i: grid.innerNodeList) z1[i] = z[i] + dz[i];
+           y = minSurfOp_Vector(z1);
+           res1 = residual_matFree(y);
+           if (res1 < inputParserObj.getTOL_Newton()) break;
+           
+           for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = s[i];
+           yt = minSurfOp_Vector(zt);
+           t = dco::derivative(yt);
+           w = std::inner_product(t.begin(), t.end(), s.begin(), 0.0) / \
+               std::inner_product(t.begin(), t.end(), t.begin(), 0.0);
+           for (auto& i: grid.innerNodeList) {
+               dz[i] += w*s[i];
+               r[i] = s[i]-w*t[i];
+           }
+       }
+   
+       // update z
+       for (auto& i: grid.innerNodeList)
+           z[i] += dz[i];
+
+       iterationIndex++;
+
+       if(inputParserObj.getfileFreq() > 0) {
+           // Writing the output data
+           if( !(iterationIndex%inputParserObj.getfileFreq())) {
+               // Writing the vtk files for visualization
+               structuredGridWriter<std::vector<dType>,dType>(iterationIndex, z);
+               // Writing the residual vs. iteration number into a csv file
+               residualWriter<dType>(iterationIndex,res);
+
+           }
+       }
+       std::cout << "\tIteration: " << iterationIndex  << "\tresidual: " << res << std::endl;
 
 
 
-// °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
-// Run solver using one of the algorithms that depend on 
-// assembling the Jacobian matrix
-template<class mType, class dType>
-void solver<mType, dType>::runSolver_WithMatrix( Eigen::MatrixBase<mType> &z, int jacobianOpt, 
-                                                 dType &res, unsigned &iteration ) {
 
-    res = 0;
-    mType resVec = mType::Zero(N*N);
-    mType dz = mType::Zero(N*N); 
-    Eigen::SparseMatrix<dType, Eigen::RowMajor> Jacobian(N*N, N*N);
-    
-    // Determine initial residual 
-    if (jacobianOpt == 0)
-        res = residual_Symbolic(resVec, z);
-    else if (jacobianOpt == 1) // also computes Jacobian
-        res = residual_HandwrittenAdjoint(Jacobian, resVec, z);
-    dType lastRes = res;    
-    std::cout << "Starting residual: " << res << std::endl;
-    
-    dType omega = inputParserObj.getrelaxNewton(); // Relaxation parameter for Newton-Raphson
-    
-    iteration = 0;
-    // In case initial guess was not horrifically lucky, run Newton-Raphson
-    do { 
+   }
 
-        // if symbolic differentiation, compute Jacobian
-        if (jacobianOpt == 0)
-            minSurfJac_Symbolic(Jacobian, z);
- 
-        // dz_n = grad[F(z_n)]^-1 * F(z_n)
-        // Solve by BiCGSTAB
-        // Turned out to be fastest and most robust option 
-        // (need solver that can deal with non-spd matrices, and 
-        //  faster than SparseLU)
-        Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
-        bicgstab.setTolerance(TOL_linsolver);
-        bicgstab.compute(Jacobian);
-        dz = bicgstab.solve(resVec);
- 
-        // z_{n+1} = z_n - dz
-        z -= omega*dz; 
-    
-        // get residual and resVec -> F(z_n)
-        if (jacobianOpt == 0)
-            res = residual_Symbolic(resVec, z);
-        if (jacobianOpt == 1)
-            res = residual_HandwrittenAdjoint(Jacobian, resVec, z);
-        
-        iteration++;
-        writeLoopOutput<mType>(z, res, iteration);
-        // Check if solver stuck
-        if (checkProgress(res, lastRes))
-            break;
-        lastRes = res;
- 
-    } while (res > inputParserObj.getTOL_Newton() && 
-             iteration < inputParserObj.getmaxIters());
- 
+   std::cout << "Stopped after " << iterationIndex << " iterations with a residual of "
+             << res << "." << std::endl;
 
-}
+   // Writing final output data
+   structuredGridWriter<std::vector<dType>,dType>(iterationIndex, z);
 
-// Run solver loop using AD by dco_c++
-template<class mType, class dType>
-void solver<mType, dType>::runSolver_DcoMatrixFree( mType &mz, dType &res, unsigned &iteration ) {
+   // Writing the residual vs. iteration number of the final solution into a csv file
+   residualWriter<dType>(iterationIndex,res);
 
-    std::vector<dType> z(N*N);
-    for (int i=0; i<N*N; i++)
-        z[i] = mz[i];
- 
-    typedef typename dco::gt1s<dType>::type ADtype;
-    std::vector<ADtype> yt;
-    int lengthInnerNodeList = (int) grid.innerNodeList.size();
-    bool stopAfterIntermediateLevel = false;                  // Workaround as break statements
-                                                              // are not allowed in omp region
 
-    // BiCGSTAB solver 
-    // Have non-spd matrices -> CG does not work reliably,
-    // Eigen library recommends BiCGSTAB over GMRES
-    dType rho, rho_new, a, b, w, res1, lastRes=0;
-    std::vector<dType> dz(N*N, 0.0), v(N*N, 0.0), p(N*N, 0.0), r(N*N, 0.0),\
-    s(N*N, 0.0), t(N*N, 0.0), r0(N*N, 0.0), z1(N*N, 0.0), y(N*N, 0.0);
-    while (iteration < inputParserObj.getmaxIters()) {
-        
-        std::vector<ADtype> zt(std::begin(z), std::end(z));
-        for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = dz[i];
-        yt = minSurfOp_Vector(zt); // (y, y^(1)) = F^(1)(x, x^(1));
- 
-        // calculate residual
-        res = residual_matFree(dco::value(yt));
-        // abort if solver is stuck
-        if (checkProgress(res, lastRes))
-            break;
-        lastRes = res; 
-        // abort if converged
-        if (res < inputParserObj.getTOL_Newton()) 
-            break;
- 
-        // initialisation
-        for (auto& i: grid.innerNodeList) {
-            p[i] = -1.0*dco::value(yt)[i]-1.0*dco::derivative(yt)[i];
-        }
-        r = p; r0 = r; std::vector<dType> p(N*N, 0.0); rho = 1; a = 1; w = 1;
- 
-        // matrix free linear iterative solver (BiCGSTAB)
-        while (innerProduct(r, r) > inputParserObj.getTOL_linsolver() || 
-                   stopAfterIntermediateLevel) {
-            #pragma omp parallel if(N>=NminParallel)
-            {
-              #pragma omp single
-              {
-                rho_new = innerProduct(r0, r);
-                b = (rho_new/rho) * (a/w);
-                rho = rho_new;
-              }
-              #pragma omp for
-              for (int index=0; index < lengthInnerNodeList; index++) {
-                    int i = grid.innerNodeList[index];
-                    p[i] = r[i] + b*(p[i]-w*v[i]);
-                    dco::derivative(zt)[i] = p[i];
-              }
-              #pragma omp single
-              {
-                yt = minSurfOp_Vector(zt);
-                v = dco::derivative(yt);
-                a = rho / innerProduct(r0, v);
-              } 
-              #pragma omp parallel for if(N>=NminParallel)
-              for (int index=0; index < lengthInnerNodeList; index++) {
-                    int i = grid.innerNodeList[index];
-                    dz[i] += a*p[i];
-                    s[i] = r[i]-a*v[i];
-              }
-              // calculate res (intermediate)
-              #pragma omp parallel for if(N>=NminParallel)
-              for (int index=0; index < lengthInnerNodeList; index++) {
-                    int i = grid.innerNodeList[index];
-                    z1[i] = z[i] + dz[i];
-              }
-              #pragma omp single
-              {
-                y = minSurfOp_Vector(z1);
-                res1 = residual_matFree(y);
-                // If solver aborts on intermediate level, final output will be written in runSolver-function and is not lost
-                if (res1 < inputParserObj.getTOL_Newton()) {
-                    stopAfterIntermediateLevel = true;
-                }
-                
-                for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = s[i];
-                yt = minSurfOp_Vector(zt);
-                t = dco::derivative(yt);
-                w = innerProduct(t, s) / \
-                    innerProduct(t, t);
-              }
-              #pragma omp parallel for if(N>=NminParallel)
-              for (int index=0; index < lengthInnerNodeList; index++) {
-                    int i = grid.innerNodeList[index];
-                    dz[i] += w*s[i];
-                    r[i] = s[i]-w*t[i];
-              }
-            }
-        }
-    
-        // update z
-        for (auto& i: grid.innerNodeList)
-            z[i] += dz[i];
- 
-        iteration++;
-        writeLoopOutput(z, res, iteration);
-    }
    
 }
 
@@ -837,63 +915,20 @@ void solver<mType, dType>::runSolver_DcoMatrixFree( mType &mz, dType &res, unsig
 template<class mType, class dType>
 void solver<mType, dType>::runSolver( ) {
 
-    mType z = mType::Zero(N*N);
-    
-    std::cout << "Chose to run";
-    // Choose initial guess
-    if (inputParserObj.getInitGuessChoice() == 0) {
-        std::cout << " with trivial initial guess." << std::endl;
-        applyBC(z);
-    }
-    else if (inputParserObj.getInitGuessChoice() == 1) {
-        std::cout << " with average initial guess." << std::endl;
-        getInitGuess_Average(z); 
-    }
-    else if (inputParserObj.getInitGuessChoice() == 2) {
-        std::cout << " with initial guess by solving Laplace's equation." << std::endl;
-        getInitGuess_Laplace(z); 
-    }
-    // Raise error if initial guess is out of range
-    else {
-        std::cout << "++++++++++ ERROR!! Invalid keyword for initial guess entered. Exiting the program ++++++++++" << std::endl;
-        exit(EXIT_FAILURE);
-    }
- 
     std::cout << "Run minSurf-solver with" ;
     int jacobianOpt = inputParserObj.getjacobianOpt();
     switch(jacobianOpt) {
         case 0:
-               std::cout << " Jacobian by symbolic differentiation." << std::endl;
+               std::cout << " hardcoded Jacobian option." << std::endl;
+               runSolver_Symbolic();
                break;
         case 1:
-               std::cout << " Jacobian by handwritten adjoint AD." << std::endl;
+               std::cout << " adjoint AD by hand Jacobian option." << std::endl;
+               runSolver_HandwrittenAdjoint();
                break;
         case 2:
                std::cout << " DCO tangent Jacobian option with matrix free solver." << std::endl;
+               runSolver_DcoMatrixFree();
                break;
-        default: 
-               std::cout << "\n\nInvalid option for Jacobian. Try again...";
-               exit(EXIT_FAILURE);
-               break;
-               
     }
-
-    dType res=0; unsigned iteration=0;
-    // If using one of the algorithms that assemble a matrix, enter solver loop
-    if (jacobianOpt==0 || jacobianOpt==1)
-        runSolver_WithMatrix(z, jacobianOpt, res, iteration);
-    // If using the matrix-free algorithm, enter the matrix-free solver
-    if (jacobianOpt==2)
-        runSolver_DcoMatrixFree(z, res, iteration);
-
-    std::cout << "Stopped after " << iteration << " iterations with a residual of "
-              << res << "." << std::endl;
- 
-
-    // Writing final output data
-    structuredGridWriter<mType,dType>(iteration, z);
- 
-    // Writing the residual vs. iteration number of the final solution into a csv file
-    residualWriter<dType>(iteration, res);
-
 } 

@@ -14,29 +14,26 @@
 #include "../cartesianGrid.cpp"
 #include "gtest/gtest.h"
 
+typedef Eigen::Matrix<double,-1, 1> mType;
 
-input_parser SineTest("../testcases/sine/params.in");
-input_parser inputParserobj("../testcases/sine/params.in");
-//input_parser ScherkTest("../testcase/scherk/params.in");
+//#######################################################################################
 
-
-// TEST Initial Predefined Conditions For Sine
+// TEST input Parsal for Sine Testcase
 
 TEST(Testinputs, InputParsalSine){
 	
-	EXPECT_TRUE(SineTest.getN()==300);       // Number of Mesh Elements= 300
-	EXPECT_GT(SineTest.getmaxIters(), 100);
-	EXPECT_EQ(SineTest.getnumThreads(), 4);
-    EXPECT_LT(100, SineTest.getnMinParallel());
-	EXPECT_NE(1e-5, SineTest.getTOL_Newton());    //  Maximumum Tolerance - 1e-5
-	EXPECT_EQ( SineTest.getrelaxNewton() , 0.9);
+	EXPECT_TRUE(inputParserObj.getN()==300);       // Number of Mesh Elements= 300
+	EXPECT_GT(inputParserObj.getmaxIters(), 100);
+	EXPECT_EQ(inputParserObj.getnumThreads(), 4);
+    EXPECT_LT(100, inputParserObj.getnMinParallel());
+	EXPECT_NE(1e-5, inputParserObj.getTOL_Newton());    //  Maximumum Tolerance - 1e-5
+	EXPECT_EQ( inputParserObj.getrelaxNewton() , 0.9);
 	
-	ASSERT_TRUE(SineTest.getPoissonGuess()== 1);  // Fatal Test. Default solver is by using initial Poisson Guess(1)
-	ASSERT_FALSE(SineTest.getTOL_linsolver() ==1e-5);
+//	ASSERT_TRUE(inputParserObj.getPoissonGuess()== 1);  // Fatal Test. Default solver is by using initial Poisson Guess(1)
+	ASSERT_FALSE(inputParserObj.getTOL_linsolver() ==1e-5);
 	
 	
 }
-
 /*
 TEST(Testinputs, InputParsalScherk){
 	
@@ -54,21 +51,22 @@ TEST(Testinputs, InputParsalScherk){
 }
 */
 
+//##########################################################################################################
 // Test to check for Cartesian Grid Formation. 
 //Calling all the functions within class Cartesian Grid. Manually Providing value for 'N' and noGridPoints
 
 TEST(Testgrid, BoundaryNodes){
 	
-int bottom_most,left_most,top_most,right_most, i=0;		
-cartesianGrid<double, std::vector<int>> gridT;
-int N= SineTest.getN();
-int noGridPoints=N;
-gridT.setNoGridPoints(N);
-gridT.setGridSpacing(); 
-gridT.setBdryNodes();
-gridT.setInnerNodes();
-std::cout << N << std::endl;
-	int bot,rig,to,lef;
+	int bottom_most,left_most,top_most,right_most, i=0;		
+	cartesianGrid<double, std::vector<int>> gridT;
+	int N= inputParserObj.getN();
+	int noGridPoints=N;
+	gridT.setNoGridPoints(N);
+	gridT.setGridSpacing(); 
+	gridT.setBdryNodes();
+	gridT.setInnerNodes();
+	std::cout << N << std::endl;
+
     for(auto& i: gridT.bdryNodeList.bottom)
     bottom_most=i; 
     for(auto& i: gridT.bdryNodeList.right)
@@ -78,47 +76,82 @@ std::cout << N << std::endl;
     for(auto& i: gridT.bdryNodeList.left)
     left_most=i;
 
-int size= gridT.innerNodeList.size();
 
-EXPECT_TRUE(size==100);
-EXPECT_LT(left_most, top_most);
-EXPECT_GT(top_most, right_most);
-EXPECT_GT(right_most, bottom_most);
-EXPECT_LT(bottom_most,top_most);
-EXPECT_LT(bottom_most, left_most); 
-
-
-EXPECT_EQ(gridT.noGridPoints, 300);
 }
+// Testing for Lexicographical ordering
 
-
-
-TEST(TestSolver, BC){
+TEST(Testgrid, InnerNodes){
 	
-typedef Eigen::Matrix<double,-1, 1> mType;
+int end;	
+	
+	cartesianGrid<double, std::vector<int>> gridT2;  // Test instance of class cartesianGrid
+	int N= inputParserObj.getN();
+	int noGridPoints=N;
+	gridT2.setNoGridPoints(N);                       // setting up grid   
+	gridT2.setGridSpacing(); 
+	gridT2.setBdryNodes();                           // sorting
+	gridT2.setInnerNodes();
 
-solver<mType, double>solution;
-EXPECT_EQ(1 ,2);
-mType invec;
-invec << 1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0; 
-std::cout << invec[4] << std::endl;
-solution.applyBC(invec);
+for(auto& it: gridT2.innerNodeList)
+	it=end; 		
+int size= gridT2.innerNodeList.size();
+EXPECT_EQ(gridT2.noGridPoints, 300);
+EXPECT_GT(size , 100);
+EXPECT_EQ(end, 0);            
+}
+// ##########################################################################################
+// Testing for boundary conditions with zero matrix
 
-std::cout << invec[4] << std::endl;
+TEST(TestSolver, BoundaryConditions){
+	int f1,f2;	
+	int N=inputParserObj.getN();
+	solver<mType, double>solution;                      // Test instance of class solver
+	mType testvec = mType::Zero(N*N);                  
+	solution.setMesh();
+	solution.applyBC(testvec);                          // Applying BC to test vector
+	for(int i=0; i<N; i++){
+	if (i ==0)
+	f1= testvec[i];
+else
+	if (i==N-1)
+		f2= testvec[i];
+}	
 
-
+	EXPECT_EQ(f1,1);                               
+	EXPECT_EQ(f2, 1);
 
 }
 
 
+TEST (TestSolver , LaplaceMatrix ){
+	int N=3;	
+	solver<mType, double>solution2;	
+	Eigen::SparseMatrix<double, Eigen::RowMajor> testmatrix(N*N, N*N);
+	solution2.buildLaplaceMatrix(testmatrix);
+	
+	EXPECT_EQ(testmatrix.rows(), 10);	
 
+}
+/*
+TEST (TestSolver,residual_HandwrittenAdjoint){
+	
+	Eigen::SparseMatrix<dType, Eigen::RowMajor> Jacobian(N*N, N*N);
+	mType test = mType::Zero(N*N);
+	const mTypey reference= mType::Zero(N*N);
+	solver<mType,double>solution3;
+	double test_residual=solution3.residual_HandwrittenAdjoint(Jacobian,test,reference);
+	
+	EXPECT_TRUE( test_residual == 1);
+		
+		
+
+}
+*/
 
 int main(int argc, char* argv[]) {
+	// std::cout << inputParserObj.getN() << std::endl; // Debugging Input Parser Class
 	
   ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
-	
-
-
 }
 

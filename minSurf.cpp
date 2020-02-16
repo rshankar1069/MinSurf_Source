@@ -43,7 +43,7 @@
 
 int main() {
 
-    // Change dType if you want to run the simulation in float or double
+double start= omp_get_wtime();
     typedef double dType;
     typedef Eigen::Matrix<dType,-1, 1> mType; // -1 -> Dynamic allocation (for arrays > 16, what 
                                                // we usually have, there is no performance benefit 
@@ -53,4 +53,8 @@ int main() {
     minSurf.setMesh();
     std::cout << "noGridPoints: " << minSurf.grid.noGridPoints << std::endl;
     minSurf.runSolver();
+	
+double end= omp_get_wtime();	
+	std::cout << "time duration:" << double(end-start) << std::endl;
 }
+

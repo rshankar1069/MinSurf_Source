@@ -5,7 +5,7 @@
  *
  *  Grid class -- header file
  */
- 
+
 #pragma once
 
 // Here we want some further explanations...
@@ -35,18 +35,16 @@ template<class dType, class listType> class cartesianGrid
         dType gridSpacing; // need better name!
         
         listType innerNodeList;
-		
         struct bdryNodes{
             listType bottom, right, top, left;
         };
         bdryNodes bdryNodeList;
         
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    //private:                                                          // Removed Private dependency
+   //private:                Removed Private Dependency
         
         void setBdryNodes( );
         void setInnerNodes( );
-		void Printnodes();
         
         void setNoGridPoints( int N ) { noGridPoints = N; }
         void setGridSpacing( ) { gridSpacing = 1.0 / noGridPoints; } // make sure to only use when 
