@@ -18,9 +18,9 @@ typedef Eigen::Matrix<double,-1, 1> mType;
 
 //#######################################################################################
 
-// TEST input Parsal for Sine Testcase
+// TEST input Parser for Sine Testcase
 
-TEST(Testinputs, InputParsalSine){
+TEST(Testinputs, InputParserSine){
 	
 	EXPECT_TRUE(inputParserObj.getN()==300);       // Number of Mesh Elements= 300
 	EXPECT_GT(inputParserObj.getmaxIters(), 100);
@@ -35,7 +35,7 @@ TEST(Testinputs, InputParsalSine){
 	
 }
 /*
-TEST(Testinputs, InputParsalScherk){
+TEST(Testinputs, InputParserScherk){
 	
 	EXPECT_TRUE(ScherkTest.getN()==50);      
 	EXPECT_GT(ScherkTest.getmaxIters(), 100);
