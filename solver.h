@@ -56,8 +56,9 @@ template<class mType, class dType> class solver
         void applyBC( Eigen::MatrixBase<mType> &inVec );
         
         // Get initial guess by solving -u''=0 in D, u=g on dD via central FD
-        void buildLaplaceMatrix( Eigen::SparseMatrix<dType, Eigen::RowMajor> &poissonMatrix );
-        void getInitGuess( Eigen::MatrixBase<mType> &zE );
+        void buildLaplaceMatrix( Eigen::SparseMatrix<dType, Eigen::RowMajor> &laplaceMatrix );
+        void getInitGuess_Average( Eigen::MatrixBase<mType> &zE );
+        void getInitGuess_Laplace( Eigen::MatrixBase<mType> &zE );
         
         // Helper functions for FD stencils
         inline dType getDx( const Eigen::MatrixBase<mType> &inVec, const int index );
@@ -85,10 +86,18 @@ template<class mType, class dType> class solver
                                  const Eigen::MatrixBase<mType> &solVec);
         template <class vecType>
         dType residual_matFree( const vecType &resVec);
+        // Function for loop-wise solver output 
+        template <class vecType>
+        void writeLoopOutput( const vecType &z, const dType res, const unsigned iteration );
+        // Function to check whether solver is stuck 
+        bool checkProgress( const dType res, const dType lastRes );
+        // Parallel computation of inner product  
+        template <class vecType>
+        dType innerProduct( const vecType inVec1, const vecType inVec2 );
         // Functions to run solver depending on way to determine Jacobian
-        void runSolver_Symbolic( );
-        void runSolver_HandwrittenAdjoint( );
-        void runSolver_DcoMatrixFree( );
+        void runSolver_WithMatrix( Eigen::MatrixBase<mType> &z, int jacobianOpt, 
+                                   dType &res, unsigned &iteration );
+        void runSolver_DcoMatrixFree( mType &mz, dType &res, unsigned &iteration );
         
 };
 
