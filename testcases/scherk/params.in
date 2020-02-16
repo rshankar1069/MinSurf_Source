@@ -1,8 +1,8 @@
 ## Mesh Parameters
 
 # ~ Number of gridpoints per dimension
-# --> Have thus noMeshElements^2 elements
-noMeshElements 120 
+# --> Have thus (noMeshElements)^2 elements
+noMeshElements 100 
 
 ## Constants (apart from "pi", "e" and "i")
 ## Append '$' in the front of the constant to pass it to the expression parser
@@ -11,7 +11,8 @@ NUM_CONSTS 2
 
 $OMEGA 1
 # SCALE \in (0,1), for a proper solution it should be less than approx. 0.8
-$SCALE 0.75  
+# dependent on noMeshElements
+$SCALE 0.8  
 
 ## Variables (CASE SENSITIVE)
 # x,y \in [0,1] on the grid 
@@ -41,7 +42,7 @@ TOL_newton 1e-3
 
 # Tolerance to use for the convergence of the linear iterative solver
 # TOL_linsolver should not be larger than TOL_newton
-TOL_linsolver 1e-5 
+TOL_linsolver 1e-4 
 
 # Maximum number of iterations for the Newton-Raphson Iterations
 maxIter 50
@@ -54,15 +55,15 @@ relaxNewton 0.8
 # -> hardcoded, full Jacobian (0)
 # -> ADbyHand, full Jacobian (1)
 # -> ADbyDCO, matrix-free solver (2)
-jacobianOpt 0
+jacobianOpt 1
 
 ## File writing frequency
 # Set the value to 0 if no output is to be written
-fileFreq 1
+fileFreq 0
 
 ## OpenMP Parameters
 # No of threads for parallel execution
-nThreads 1 
+nThreads 2 
 # Minimal number of gridpoints per dimension for parallel execution 
 nMinParallel 100 
 
