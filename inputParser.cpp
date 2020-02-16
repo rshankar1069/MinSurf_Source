@@ -201,7 +201,7 @@ void input_parser::setTOL_linsolver()
     }
 }
 
-// Function defined to set the option of using Laplace solution as the initial guess
+// Function defined to set the option of using average or Laplace solution as the initial guess
 void input_parser::setInitGuessChoice()
 {
     auto iterator = std::find(tokens.begin(),tokens.end(),"initGuessChoice");
