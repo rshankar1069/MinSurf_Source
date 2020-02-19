@@ -56,7 +56,7 @@ template<class mType, class dType> class solver
         void applyBC( Eigen::MatrixBase<mType> &inVec );
         
         // Get initial guess by solving -u''=0 in D, u=g on dD via central FD
-        void buildLaplaceMatrix( Eigen::SparseMatrix<dType, Eigen::RowMajor> &laplaceMatrix );
+        void buildLaplaceMatrix( Eigen::SparseMatrix<dType, Eigen::ColMajor> &laplaceMatrix );
         void getInitGuess_Average( Eigen::MatrixBase<mType> &zE );
         void getInitGuess_Laplace( Eigen::MatrixBase<mType> &zE );
         

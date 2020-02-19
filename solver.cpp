@@ -13,16 +13,16 @@
 #include<fstream>
 
 // -------------------------------------------------------------------------------------------------
-// Function to set the grid-related properties -> Sankar: extend?
+// Function to set the grid-related properties
 template <class mType, class dType>
-void solver<mType, dType>::setMesh( ) { // @Sankar, maybe play here with the input
+void solver<mType, dType>::setMesh( ) { 
     grid.setupGrid();
     N = grid.noGridPoints;
     h = grid.gridSpacing;
 }
 
 // -------------------------------------------------------------------------------------------------
-// Function to apply boundary conditions - needs to be extended -> Sankar
+// Function to apply boundary conditions
 template <class mType, class dType>
 void solver<mType, dType>::applyBC( Eigen::MatrixBase<mType> &inVec ) {
 
@@ -108,7 +108,7 @@ void solver<mType, dType>::applyBC( Eigen::MatrixBase<mType> &inVec ) {
 // -------------------------------------------------------------------------------------------------
 // Method to build laplace matrix
 template <class mType, class dType>
-void solver<mType, dType>::buildLaplaceMatrix( Eigen::SparseMatrix<dType, Eigen::RowMajor> &laplaceMatrix ) { 
+void solver<mType, dType>::buildLaplaceMatrix( Eigen::SparseMatrix<dType, Eigen::ColMajor> &laplaceMatrix ) { 
     
     typedef Eigen::Triplet<dType> triplet;
     std::vector<triplet> tripletList;
@@ -226,14 +226,22 @@ void solver<mType, dType>::getInitGuess_Laplace( Eigen::MatrixBase<mType> &z ){
     applyBC(b);
 
     // Build Laplace-matrix 
-    Eigen::SparseMatrix<dType, Eigen::RowMajor> laplaceMatrix(N*N, N*N);
+    Eigen::SparseMatrix<dType, Eigen::ColMajor> laplaceMatrix(N*N, N*N);
     buildLaplaceMatrix(laplaceMatrix);
 
     // Solve the Laplace equation using BiCGSTAB 
+    if ( iterative solver ) 
     Eigen::setNbThreads(numThreads);
-    Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
+    Eigen::BiCGSTAB<Eigen::SparseMatrix<dType,Eigen::RowMajor>,
+                   Eigen::IncompleteLUT<dType> >  bicgstab; // substantial speedup thanks to preconditioner
     bicgstab.setTolerance(TOL_linsolver);
     z = bicgstab.compute(laplaceMatrix).solve(b);
+    
+    laplaceMatrix.makeCompressed(); // sparseLU even faster...
+    Eigen::SparseLU<Eigen::SparseMatrix<dType, Eigen::ColMajor>, Eigen::COLAMDOrdering<int> > bla;
+    bla.analyzePattern(laplaceMatrix);
+    bla.factorize(laplaceMatrix);
+    z = bla.solve(b);
 }
 
 
@@ -455,7 +463,7 @@ void solver<mType, dType>::minSurfJac_HandwrittenAdjoint( Eigen::SparseMatrix<dT
          int i = grid.innerNodeList[index];
          
          // forward
-         // d(...) = fd(x) // @Chenfei: can't we use the functions defined above??
+         // d(...) = fd(x)
          dType dx = getDx(inVec, i);
          dType dy = getDy(inVec, i);
          dType dxx = getDxx(inVec, i);
