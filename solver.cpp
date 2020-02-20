@@ -21,6 +21,9 @@ void solver<mType, dType>::setMesh( ) {
     h = grid.gridSpacing;
 }
 
+
+
+
 // -------------------------------------------------------------------------------------------------
 // Function to apply boundary conditions
 template <class mType, class dType>
@@ -108,7 +111,7 @@ void solver<mType, dType>::applyBC( Eigen::MatrixBase<mType> &inVec ) {
 // -------------------------------------------------------------------------------------------------
 // Method to build laplace matrix
 template <class mType, class dType>
-void solver<mType, dType>::buildLaplaceMatrix( Eigen::SparseMatrix<dType, Eigen::ColMajor> &laplaceMatrix ) { 
+void solver<mType, dType>::buildLaplaceMatrix( Eigen::SparseMatrix<dType, Eigen::RowMajor> &laplaceMatrix ) { 
     
     typedef Eigen::Triplet<dType> triplet;
     std::vector<triplet> tripletList;
@@ -226,22 +229,20 @@ void solver<mType, dType>::getInitGuess_Laplace( Eigen::MatrixBase<mType> &z ){
     applyBC(b);
 
     // Build Laplace-matrix 
-    Eigen::SparseMatrix<dType, Eigen::ColMajor> laplaceMatrix(N*N, N*N);
+    Eigen::SparseMatrix<dType, Eigen::RowMajor> laplaceMatrix(N*N, N*N);
     buildLaplaceMatrix(laplaceMatrix);
 
     // Solve the Laplace equation using BiCGSTAB 
-    if ( iterative solver ) 
+    // using incomplete LU factorization as a preconditioner
+    // tuned s.th. outperforms SparseLU decomposition
     Eigen::setNbThreads(numThreads);
-    Eigen::BiCGSTAB<Eigen::SparseMatrix<dType,Eigen::RowMajor>,
-                   Eigen::IncompleteLUT<dType> >  bicgstab; // substantial speedup thanks to preconditioner
+    Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor>,
+                    Eigen::IncompleteLUT<dType> >  bicgstab;
+    bicgstab.preconditioner().setDroptol(0.001); // preconditioner
+    bicgstab.preconditioner().setFillfactor(20); // tuning
     bicgstab.setTolerance(TOL_linsolver);
-    z = bicgstab.compute(laplaceMatrix).solve(b);
+    z = bicgstab.compute(laplaceMatrix).solve(b)
     
-    laplaceMatrix.makeCompressed(); // sparseLU even faster...
-    Eigen::SparseLU<Eigen::SparseMatrix<dType, Eigen::ColMajor>, Eigen::COLAMDOrdering<int> > bla;
-    bla.analyzePattern(laplaceMatrix);
-    bla.factorize(laplaceMatrix);
-    z = bla.solve(b);
 }
 
 
@@ -379,6 +380,7 @@ void solver<mType, dType>::minSurfJac_Symbolic( Eigen::SparseMatrix<dType, Eigen
           dxx = getDxx(inVec, i);
           dyy = getDyy(inVec, i);
           dxy = getDxy(inVec, i);
+          // Build in reduced system
           tripletListLoc.push_back(triplet( i, i, 
                                              -2./(h*h)*(1+pow(dx, 2)) 
                                              -2./(h*h)*(1+pow(dy, 2))
@@ -625,11 +627,13 @@ void solver<mType, dType>::writeLoopOutput( const vecType &z, const dType res, c
 
 // Check solver progress
 // Returns True, if difference between current and last residual is very small 
+// and non-decreasing
+// This happens especially using float or for bad tuning parameters
 template<class mType, class dType>
 bool solver<mType, dType>::checkProgress( const dType res, const dType lastRes ) {
 
     bool out;
-    if (std::fabs(res-lastRes)/res < 5e-2 && res > lastRes) {
+    if ( std::fabs(res-lastRes)/res < 5e-2 && (res-lastRes)>=0 ) {
         out = true;
         std::cout << "\tSolver is not making any progress. Aborting..." << std::endl;
     }
@@ -665,7 +669,6 @@ dType solver<mType, dType>::innerProduct( const vecType inVec1, const vecType in
 }
 
 
-
 // °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
 // Run solver using one of the algorithms that depend on 
 // assembling the Jacobian matrix
@@ -675,7 +678,7 @@ void solver<mType, dType>::runSolver_WithMatrix( Eigen::MatrixBase<mType> &z, in
 
     res = 0;
     mType resVec = mType::Zero(N*N);
-    mType dz = mType::Zero(N*N); 
+    mType dz  = mType::Zero(N*N);
     Eigen::SparseMatrix<dType, Eigen::RowMajor> Jacobian(N*N, N*N);
     
     // Determine initial residual 
@@ -698,16 +701,24 @@ void solver<mType, dType>::runSolver_WithMatrix( Eigen::MatrixBase<mType> &z, in
  
         // dz_n = grad[F(z_n)]^-1 * F(z_n)
         // Solve by BiCGSTAB
-        // Turned out to be fastest and most robust option 
-        // (need solver that can deal with non-spd matrices, and 
-        //  faster than SparseLU)
+        // Why --> testing on the Laplace matrix yielded, that this is 
+        // similarly fast as SparseLU, and faster if one uses IncompleteLUT preconditioning
+        //
+        // Since in a discussion with Klaus we thought, using the full system would not have 
+        // any downsides, we pretty much fixated on not to use the reduced system, and 
+        // now it is pretty much to late to change this again.
+        // BUT: Using the full system yields empty (zero) rows in the Jacobian
+        // This is something, BiCGSTAB with Jacobi-Preconditioner (default) can deal with,
+        // but LU decomposition cannot. Thus, to increase performance, it would help a 
+        // GREAT deal to change to the reduced system! 
         Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
         bicgstab.setTolerance(TOL_linsolver);
         bicgstab.compute(Jacobian);
+
         dz = bicgstab.solve(resVec);
- 
+
         // z_{n+1} = z_n - dz
-        z -= omega*dz; 
+        z -= omega*dz;
     
         // get residual and resVec -> F(z_n)
         if (jacobianOpt == 0)

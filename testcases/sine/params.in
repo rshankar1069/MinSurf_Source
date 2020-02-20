@@ -2,7 +2,7 @@
 
 # ~ Number of gridpoints per dimension
 # --> Have thus noMeshElements^2 elements
-noMeshElements 70 
+noMeshElements 800 
 
 ## Constants (apart from "pi", "e" and "i")
 ## Append '$' in the front of the constant to pass it to the expression parser
@@ -22,10 +22,10 @@ VAR1 y
 ## Boundary Conditions
 ## Use constants with '$' sign to pass the expression to the parser 
 
-BC.BOTTOM sin($pi*x) 
-BC.RIGHT  sin($pi*y)
-BC.TOP    sin($pi*x)
-BC.LEFT   sin($pi*y)
+BC.BOTTOM  1 #sin($pi*x) 
+BC.RIGHT   1 #sin($pi*y)
+BC.TOP     1 #sin($pi*x)
+BC.LEFT    0 #sin($pi*y)
 
 ## Tuning Parameters
 ## Parameters required to control the simulation run
@@ -40,7 +40,7 @@ TOL_newton 1e-4
 
 # Tolerance to use for the convergence of the linear iterative solver 
 # TOL_linsolver should not be larger than TOL_newton
-TOL_linsolver 1e-9 
+TOL_linsolver 1e-7
 
 # Maximum number of iterations for the Newton-Raphson Iterations
 maxIter 50
@@ -53,7 +53,7 @@ relaxNewton 0.9
 # -> hardcoded, full Jacobian (0)
 # -> ADbyHand, full Jacobian (1)
 # -> ADbyDCO, matrix-free solver (2)
-jacobianOpt 2
+jacobianOpt 1
 
 ## File writing frequency
 # Set the value to 0 if no output is to be written
@@ -61,9 +61,9 @@ fileFreq 1
 
 ## OpenMP Parameters
 # No of threads for parallel execution
-nThreads 4 
+nThreads 16 
 # Minimal number of gridpoints per dimension for parallel execution 
-nMinParallel 50 
+nMinParallel 200 
 
 ## Output Folder Location
 
