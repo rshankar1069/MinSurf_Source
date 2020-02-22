@@ -1,13 +1,8 @@
 ## Mesh Parameters
 
 # ~ Number of gridpoints per dimension
-<<<<<<< HEAD
 # --> Have thus (noMeshElements)^2 elements
-noMeshElements 100 
-=======
-# --> Have thus noMeshElements^2 elements
 noMeshElements 80 
->>>>>>> compareAnalyticalScherk
 
 ## Constants (apart from "pi", "e" and "i")
 ## Append '$' in the front of the constant to pass it to the expression parser
@@ -55,20 +50,20 @@ TOL_newton 1e-6
 #   #   TOL_newton, for the other Jacobians, it can (and for performance reasons should) be chosen
 #   #   almost as large
 #
-TOL_linsolver 1e-7 
+TOL_linsolver 1e-12
 
 # Maximum number of iterations for the Newton-Raphson Iterations
 maxIter 50
 
 # Relaxation parameter for Newton procedure
 # relaxNewton \in (0,1] 
-relaxNewton 0.8
+relaxNewton 0.85
 
 # Option to choose the Jacobian calculation 
 # -> hardcoded, full Jacobian (0)
 # -> ADbyHand, full Jacobian (1)
 # -> ADbyDCO, matrix-free solver (2)
-jacobianOpt 1
+jacobianOpt 2
 
 ## File writing frequency
 # Set the value to 0 if no output is to be written
@@ -76,11 +71,7 @@ fileFreq 0
 
 ## OpenMP Parameters
 # No of threads for parallel execution
-<<<<<<< HEAD
 nThreads 2 
-=======
-nThreads 8 
->>>>>>> compareAnalyticalScherk
 # Minimal number of gridpoints per dimension for parallel execution 
 nMinParallel 100 
 
