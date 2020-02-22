@@ -140,7 +140,24 @@ struct ATMSB {
 	void plog10() { stk.setTop(log10(stk.top())); }
 	void plog2()  { stk.setTop(log10(stk.top())/log10((T)2)); }
 
-	/// More basic operators, but not for complex
+  // Self-implemented indicator function
+  // Sets 1 if argument is smaller than 1
+	void psmaller1()  {
+      if (stk.top() <= (T)1)
+          stk.setTop((T)1); 
+      else
+          stk.setTop((T)0); 
+  }
+  // Sets 1 if argument is larger than 1
+	void plarger1()  { 
+      if (stk.top() >= (T)1)
+          stk.setTop((T)1); 
+      else
+          stk.setTop((T)0); 
+  }
+	
+
+  /// More basic operators, but not for complex
 	#if !defined(COMPLEX)
 	void pasin()  { T t(stk.top()); t>=(T)-1 && t<=(T)1 ? stk.setTop(asin(stk.top())) : stk.setTop(T((fltErr=1)-1)); }
 	void pacos()  { T t(stk.top()); t>=(T)-1 && t<=(T)1 ? stk.setTop(acos(stk.top())) : stk.setTop(T((fltErr=1)-1)); }
@@ -253,6 +270,7 @@ void ATMSP<T>::init() {
 	funLst.push("exp");  funLst.push("log");  funLst.push("log10");
 	funLst.push("log2"); funLst.push("sin");  funLst.push("sinh");
 	funLst.push("sqrt"); funLst.push("tan");  funLst.push("tanh");
+  funLst.push("smaller1"); funLst.push("larger1");
 
 	// Default functions all/cmath
 	#if !defined(COMPLEX)
@@ -463,16 +481,18 @@ void ATMSP<T>::factor(ATMSB<T> &bc) {
 			case  9: expression(bc); bc.fun[opCnt++] = &ATMSB<T>::psqrt;   break;
 			case 10: expression(bc); bc.fun[opCnt++] = &ATMSB<T>::ptan;    break;
 			case 11: expression(bc); bc.fun[opCnt++] = &ATMSB<T>::ptanh;   break;
+			case 12: expression(bc); bc.fun[opCnt++] = &ATMSB<T>::psmaller1; break;
+			case 13: expression(bc); bc.fun[opCnt++] = &ATMSB<T>::plarger1;  break;
 			#if !defined(COMPLEX)
-			case 12: expression(bc); bc.fun[opCnt++] = &ATMSB<T>::pasin;   break;
-			case 13: expression(bc); bc.fun[opCnt++] = &ATMSB<T>::pacos;   break;
-			case 14: expression(bc); bc.fun[opCnt++] = &ATMSB<T>::patan;   break;
-			case 15: expression(bc); bc.fun[opCnt++] = &ATMSB<T>::patan2;  break;
-			case 16: expression(bc); ++cp; expression(bc); bc.fun[opCnt++] = &ATMSB<T>::pmax; break;
-			case 17: expression(bc); ++cp; expression(bc); bc.fun[opCnt++] = &ATMSB<T>::pmin; break;
-			case 18: expression(bc); bc.fun[opCnt++] = &ATMSB<T>::psig;    break;
-			case 19: expression(bc); bc.fun[opCnt++] = &ATMSB<T>::pfloor;  break;
-			case 20: expression(bc); bc.fun[opCnt++] = &ATMSB<T>::pround;  break;
+			case 14: expression(bc); bc.fun[opCnt++] = &ATMSB<T>::pasin;   break;
+			case 15: expression(bc); bc.fun[opCnt++] = &ATMSB<T>::pacos;   break;
+			case 16: expression(bc); bc.fun[opCnt++] = &ATMSB<T>::patan;   break;
+			case 17: expression(bc); bc.fun[opCnt++] = &ATMSB<T>::patan2;  break;
+			case 18: expression(bc); ++cp; expression(bc); bc.fun[opCnt++] = &ATMSB<T>::pmax; break;
+			case 19: expression(bc); ++cp; expression(bc); bc.fun[opCnt++] = &ATMSB<T>::pmin; break;
+			case 20: expression(bc); bc.fun[opCnt++] = &ATMSB<T>::psig;    break;
+			case 21: expression(bc); bc.fun[opCnt++] = &ATMSB<T>::pfloor;  break;
+			case 22: expression(bc); bc.fun[opCnt++] = &ATMSB<T>::pround;  break;
 			#endif
 		}
 		++cp;

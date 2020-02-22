@@ -1,27 +1,19 @@
 ## Mesh Parameters
 
 # ~ Number of gridpoints per dimension
-<<<<<<< HEAD
-# --> Have thus (noMeshElements)^2 elements
-noMeshElements 100 
-=======
 # --> Have thus noMeshElements^2 elements
-noMeshElements 80 
->>>>>>> compareAnalyticalScherk
+noMeshElements 100 
 
 ## Constants (apart from "pi", "e" and "i")
 ## Append '$' in the front of the constant to pass it to the expression parser
 
-NUM_CONSTS 2
+NUM_CONSTS 1
 
 $OMEGA 1
-# SCALE \in (0,1), for a proper solution it should be less than approx. 0.8
-# convergence per SCALE dependent on noMeshElements
-# To observe O(1/N) convergence of error, SCALE < 0.5 
-$SCALE 0.3 
 
 ## Variables (CASE SENSITIVE)
 # x,y \in [0,1] on the grid 
+
 NUM_VARS 2
 
 VAR0 x
@@ -34,10 +26,10 @@ VAR1 y
 #   smaller1(VAR) { (VAR<=1)? 1:0 } and larger1(VAR) { (VAR>=1)? 1:0 }
 #   Make sure to scale VAR such that one compares to 1
 
-BC.BOTTOM  log(cos($pi*$SCALE*(x-0.5))/cos($pi*$SCALE*(y-0.5)))
-BC.RIGHT   log(cos($pi*$SCALE*(x-0.5))/cos($pi*$SCALE*(y-0.5)))
-BC.TOP     log(cos($pi*$SCALE*(x-0.5))/cos($pi*$SCALE*(y-0.5)))
-BC.LEFT    log(cos($pi*$SCALE*(x-0.5))/cos($pi*$SCALE*(y-0.5)))
+BC.BOTTOM  -x*smaller1(2*x)+(-1+x)*larger1(2*x) 
+BC.RIGHT   0
+BC.TOP      x*smaller1(2*x)+(1-x)*larger1(2*x) 
+BC.LEFT    0 
 
 ## Tuning Parameters
 ## Parameters required to control the simulation run
@@ -45,42 +37,39 @@ BC.LEFT    log(cos($pi*$SCALE*(x-0.5))/cos($pi*$SCALE*(y-0.5)))
 # 0 -> Use Zero initial guess 
 # 1 -> Use average initial guess
 # 2 -> Use Laplace initial guess
-initGuessChoice 2 
-# Tolerance to use for the convergence of the Newton-Raphson Iterations
-TOL_newton 1e-6
+initGuessChoice 2
 
-# Tolerance to use for the convergence of the linear iterative solver
+# Tolerance to use for the convergence of the Newton-Raphson Iterations
+TOL_newton 1e-4
+
+# Tolerance to use for the convergence of the linear iterative solver 
 # TOL_linsolver should not be larger than TOL_newton
 #   For DCO matrix free Jacobian, TOL_linsolver should be significantly smaller than
 #   #   TOL_newton, for the other Jacobians, it can (and for performance reasons should) be chosen
 #   #   almost as large
 #
-TOL_linsolver 1e-7 
+TOL_linsolver 1e-9 
 
 # Maximum number of iterations for the Newton-Raphson Iterations
 maxIter 50
 
 # Relaxation parameter for Newton procedure
 # relaxNewton \in (0,1] 
-relaxNewton 0.8
+relaxNewton 0.9 
 
 # Option to choose the Jacobian calculation 
 # -> hardcoded, full Jacobian (0)
 # -> ADbyHand, full Jacobian (1)
 # -> ADbyDCO, matrix-free solver (2)
-jacobianOpt 1
+jacobianOpt 2
 
 ## File writing frequency
 # Set the value to 0 if no output is to be written
-fileFreq 0
+fileFreq 1
 
 ## OpenMP Parameters
 # No of threads for parallel execution
-<<<<<<< HEAD
-nThreads 2 
-=======
-nThreads 8 
->>>>>>> compareAnalyticalScherk
+nThreads 4 
 # Minimal number of gridpoints per dimension for parallel execution 
 nMinParallel 100 
 
@@ -88,7 +77,7 @@ nMinParallel 100
 # ONLY to be used together with Scherk boundary conditions!
 # 0 -> Do not compare FD with Analytical solution
 # 1 -> Compare FD with Analytical solution
-scherkAnalytical 1
+scherkAnalytical 0
 
 ## Output Folder Location
 

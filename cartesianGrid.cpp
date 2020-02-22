@@ -10,7 +10,7 @@
 #include "cartesianGrid.h"
 
 // -------------------------------------------------------------------------------------------------
-// Setup grid parameters // @Sankar: from input file
+// Setup grid parameters 
 template <class dType, class listType>
 void cartesianGrid<dType, listType>::setupGrid() {
 
@@ -51,16 +51,6 @@ void cartesianGrid<dType, listType>::setBdryNodes( ) {
     std::sort(bdryNodeList.top.begin(),    bdryNodeList.top.end());
     std::sort(bdryNodeList.left.begin(),   bdryNodeList.left.end());
 
-    // Debug output
-    //~for(auto& i: bdryNodeList.bottom)
-        //~std::cout << i << std::endl;
-    //~for(auto& i: bdryNodeList.right)
-        //~std::cout << i << std::endl;
-    //~for(auto& i: bdryNodeList.top)
-        //~std::cout << i << std::endl;
-    //~for(auto& i: bdryNodeList.left)
-        //~std::cout << i << std::endl;
-
 
 }
 
@@ -78,11 +68,6 @@ void cartesianGrid<dType, listType>::setInnerNodes( ) {
     // Sort list (works for vector)
     std::sort(innerNodeList.begin(), innerNodeList.end());
     
-    // Debug output
-    //~std::cout << "innernodes:\n";
-    //~for(auto& it: innerNodeList)
-        //~std::cout << it << std::endl;
-        
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -102,3 +87,4 @@ dType cartesianGrid<dType, listType>::getCooY(int index) {
     dType y = ((dType) row) / (noGridPoints-1);
     return y;
 }
+

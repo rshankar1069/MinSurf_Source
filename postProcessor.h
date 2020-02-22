@@ -31,10 +31,22 @@
 
 // Function to write the structured VTK file for visualization
 template<class mType,class dType>
-void structuredGridWriter(int iterationIndex,mType z);
+void structuredGridWriter(int iterationIndex, mType z);
 
 // Function to write the residual
 template <class dType>
 void residualWriter(int iterationIndex, dType res);
+
+// Function to compare Analytical solution with Numerical solution
+template <class mType, class dType>
+void compareAnalyticSoln(mType z);
+
+// Function to calculate the l2-Euclidean Norm
+template <class mType, class dType>
+dType l2Euclidean(int N, mType z, std::vector<dType> zAnalytical);
+
+//Function to calculate the Max Norm
+template <class mType, class dType>
+dType maxNorm(int N, mType z, std::vector<dType> zAnalytical);
 
 #endif //POSTPROCESS_H_INCLUDED
