@@ -40,7 +40,11 @@ TOL_newton 1e-4
 
 # Tolerance to use for the convergence of the linear iterative solver 
 # TOL_linsolver should not be larger than TOL_newton
-TOL_linsolver 1e-7
+#   For DCO matrix free Jacobian, TOL_linsolver should be significantly smaller than
+#   #   TOL_newton, for the other Jacobians, it can (and for performance reasons should) be chosen
+#   #   almost as large
+#
+TOL_linsolver 1e-9 
 
 # Maximum number of iterations for the Newton-Raphson Iterations
 maxIter 50
@@ -68,7 +72,7 @@ nMinParallel 200
 ## Output Folder Location
 
 # Location to store the vtk files for visualization
-vtkOutLoc vtk/
+vtkOutLoc surface/
 
 # Location to store the residual text files
 resOutLoc residual/
