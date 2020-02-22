@@ -627,15 +627,13 @@ void solver<mType, dType>::writeLoopOutput( const vecType &z, const dType res, c
 
 // Check solver progress
 // Returns True, if difference between current and last residual is very small 
-// and non-decreasing
 // This happens especially using float or for bad tuning parameters
 template<class mType, class dType>
 bool solver<mType, dType>::checkProgress( const dType res, const dType lastRes ) {
 
-    bool out;
-    if ( std::fabs(res-lastRes)/res < 5e-2 && (res-lastRes)>=0 ) {
+    bool out=false;
+    if ( std::fabs(res-lastRes)/res < 1e-2 ) {
         out = true;
-        std::cout << "\tSolver is not making any progress. Aborting..." << std::endl;
     }
     else 
         out = false; 
@@ -729,8 +727,10 @@ void solver<mType, dType>::runSolver_WithMatrix( Eigen::MatrixBase<mType> &z, in
         iteration++;
         writeLoopOutput<mType>(z, res, iteration);
         // Check if solver stuck
-        if (checkProgress(res, lastRes))
+        if (checkProgress(res, lastRes) && iteration>=5) {
+            std::cout << "\tSolver is not making any progress. Aborting..." << std::endl;
             break;
+        }
         lastRes = res;
  
     } while (res > inputParserObj.getTOL_Newton() && 
@@ -768,8 +768,10 @@ void solver<mType, dType>::runSolver_DcoMatrixFree( mType &mz, dType &res, unsig
         // calculate residual
         res = residual_matFree(dco::value(yt));
         // abort if solver is stuck
-        if (checkProgress(res, lastRes))
+        if (checkProgress(res, lastRes) && iteration>=5) {
+            std::cout << "\tSolver is not making any progress. Aborting..." << std::endl;
             break;
+        }
         lastRes = res; 
         // abort if converged
         if (res < inputParserObj.getTOL_Newton()) 

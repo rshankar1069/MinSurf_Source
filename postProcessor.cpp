@@ -157,20 +157,20 @@ void compareAnalyticSoln( mType z ) {
 
     int N = inputParserObj.getN();
     dType h = (dType)1.0/N;
-    std::vector<dType> zAnalytic;
+    std::vector<dType> zAnalytic(N*N);
     std::string soln = "log(cos($pi*$SCALE*(x-0.5))/cos($pi*$SCALE*(y-0.5)))";
     parser.parse(byteCode,soln,varnames);
     for(int i=0;i<N;i++) {
-        for(int j=0;j<N;j++) {
+        for(int j=0; j<N; j++) {
             byteCode.var[0] = i*h;
             byteCode.var[1] = j*h;
-            zAnalytic.push_back(byteCode.run());
+            zAnalytic[i+j*N] = byteCode.run();
         }
     }
     dType l2norm = l2Euclidean(N,z,zAnalytic);
     dType maxvalnorm = maxNorm(N,z,zAnalytic);
-    std::cout << "\t  error in l2-norm : " << l2norm << std::endl;
-    std::cout << "\t  error max-norm : " << maxvalnorm << std::endl;
+    std::cout << "\t\terror in l2-norm  : " << l2norm << std::endl;
+    std::cout << "\t\terror in max-norm : " << maxvalnorm << std::endl;
 }
 
 // Function to calculate the Scherk error in the l2 (Euclidian) norm 
@@ -180,7 +180,7 @@ dType l2Euclidean(int N, mType z, std::vector<dType> zAnalytical) {
     dType res = 0.0;
     // Note, that boundary is already exact. We loop over all grid-points 
     // to avoid generating a cartesiangrid-instance
-    for(int i=0;i<N*N;i++) {
+    for(int i=0; i<N*N; i++) {
         res += (zAnalytical[i]-z[i])*(zAnalytical[i]-z[i]);
         }
     res = (1.0/N)*std::sqrt(res);
@@ -193,9 +193,10 @@ template <class mType,class dType>
 dType maxNorm(int N, mType z, std::vector<dType> zAnalytical) {
 
     dType maxVal = fabs(zAnalytical[0]-z[0]);
-    for(int i=0;i<N*N;i++) {
-        if(maxVal <= fabs(zAnalytical[i]-z[i]))
+    for(int i=0; i<N*N; i++) {
+        if(maxVal <= fabs(zAnalytical[i]-z[i])) {
             maxVal = fabs(zAnalytical[i]-z[i]);
+        }
     }
 
     return maxVal;
