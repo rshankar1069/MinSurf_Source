@@ -73,7 +73,7 @@ nMinParallel 100
 ## Output Folder Location
 
 # Location to store the vtk files for visualization
-vtkOutLoc vtk/
+vtkOutLoc surface/
 
 # Location to store the residual text files
 resOutLoc residual/
