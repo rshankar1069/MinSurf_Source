@@ -21,7 +21,11 @@ VAR0 x
 VAR1 y
 
 ## Boundary Conditions
-## Use constants with '$' sign to pass the expression to the parser 
+#  Use constants with '$' sign to pass the expression to the parser 
+#  If you want piece-wise boundary conditions: 
+#   We implemented the functions smaller1(VAR), larger1(VAR) in the parser
+#   smaller1(VAR) { (VAR<=1)? 1:0 } and larger1(VAR) { (VAR>=1)? 1:0 }
+#   Make sure to scale VAR such that one compares to 1
 
 BC.BOTTOM  log(cos($pi*$SCALE*(x-0.5))/cos($pi*$SCALE*(y-0.5)))
 BC.RIGHT   log(cos($pi*$SCALE*(x-0.5))/cos($pi*$SCALE*(y-0.5)))
@@ -39,8 +43,10 @@ initGuessChoice 2
 # Tolerance to use for the convergence of the Newton-Raphson Iterations
 TOL_newton 1e-5
 
-# Tolerance to use for the convergence of the linear iterative solver
-# TOL_linsolver should not be larger than TOL_newton
+#   For DCO matrix free Jacobian, TOL_linsolver should be significantly smaller than
+#   #   TOL_newton, for the other Jacobians, it can (and for performance reasons should) be chosen
+#   #   almost as large
+#
 TOL_linsolver 1e-7 
 
 # Maximum number of iterations for the Newton-Raphson Iterations
@@ -48,13 +54,13 @@ maxIter 50
 
 # Relaxation parameter for Newton procedure
 # relaxNewton \in (0,1] 
-relaxNewton 0.8
+relaxNewton 0.85
 
 # Option to choose the Jacobian calculation 
 # -> hardcoded, full Jacobian (0)
 # -> ADbyHand, full Jacobian (1)
 # -> ADbyDCO, matrix-free solver (2)
-jacobianOpt 0
+jacobianOpt 1
 
 ## File writing frequency
 # Set the value to 0 if no output is to be written
@@ -66,7 +72,8 @@ nThreads 1
 # Minimal number of gridpoints per dimension for parallel execution 
 nMinParallel 100 
 
-## Option to compare FD solution with Analytical solution for Scherk Surface
+## Option to compare FD solution with analytical solution for Scherk Surface
+# ONLY to be used together with Scherk boundary conditions!
 # 0 -> Do not compare FD with Analytical solution
 # 1 -> Compare FD with Analytical solution
 scherkAnalytical 1
@@ -74,7 +81,7 @@ scherkAnalytical 1
 ## Output Folder Location
 
 # Location to store the vtk files for visualization
-vtkOutLoc vtk/
+vtkOutLoc surface/
 
 # Location to store the residual text files
 resOutLoc residual/
