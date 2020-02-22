@@ -2,7 +2,7 @@
 
 # ~ Number of gridpoints per dimension
 # --> Have thus noMeshElements^2 elements
-noMeshElements 120 
+noMeshElements 200 
 
 ## Constants (apart from "pi", "e" and "i")
 ## Append '$' in the front of the constant to pass it to the expression parser
@@ -37,11 +37,11 @@ BC.LEFT    log(cos($pi*$SCALE*(x-0.5))/cos($pi*$SCALE*(y-0.5)))
 initGuessChoice 2
 
 # Tolerance to use for the convergence of the Newton-Raphson Iterations
-TOL_newton 1e-3
+TOL_newton 1e-5
 
 # Tolerance to use for the convergence of the linear iterative solver
 # TOL_linsolver should not be larger than TOL_newton
-TOL_linsolver 1e-5 
+TOL_linsolver 1e-7 
 
 # Maximum number of iterations for the Newton-Raphson Iterations
 maxIter 50
@@ -65,6 +65,11 @@ fileFreq 1
 nThreads 1 
 # Minimal number of gridpoints per dimension for parallel execution 
 nMinParallel 100 
+
+## Option to compare FD solution with Analytical solution for Scherk Surface
+# 0 -> Do not compare FD with Analytical solution
+# 1 -> Compare FD with Analytical solution
+scherkAnalytical 1
 
 ## Output Folder Location
 

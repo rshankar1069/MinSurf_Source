@@ -35,7 +35,8 @@ class input_parser
         int jacobianOpt;                                    // Option to choose the Jacobian to be used in solving the problem
         int fileFreq;                                       // Option to choose the frequency in which the files are written
         int numThreads;                                     // Option to choose the no of threads to use for OpenMP
-        int nMinParallel;                                   // Option to choose minimal number of gridpoints to execute in parallel 
+        int nMinParallel;                                   // Option to choose minimal number of gridpoints to execute in parallel
+        int scherkOpt;												// Option to compare the FD solution with Analytical Scherk equation
         std::string vtkOutLoc;                              // Output Location to store the vtk files for postprocessing
         std::string resOutLoc;                              // Output Location to store the residual files for postprocessing                            
 
@@ -60,6 +61,7 @@ class input_parser
         void setfileFreq();
         void setnumThreads();
         void setnMinParallel();
+        void setscherkOpt();
         void setvtkOutLoc();
         void setresOutLoc();
         
@@ -80,6 +82,7 @@ class input_parser
         int getfileFreq();
         int getnumThreads();
         int getnMinParallel();
+        int getscherkOpt();
         std::string getvtkOutLoc();
         std::string getresOutLoc();
 
@@ -104,6 +107,7 @@ class input_parser
             setfileFreq();
             setnumThreads();
             setnMinParallel();
+            setscherkOpt();
             setvtkOutLoc();
             setresOutLoc();    
         }

@@ -67,6 +67,11 @@ nThreads 4
 # Minimal number of gridpoints per dimension for parallel execution 
 nMinParallel 100 
 
+## Option to compare FD solution with Analytical solution for Scherk surface
+# 0 -> Do not compare with analytical Scherk surface equation
+# 1 -> Compare with analytical Scherk surface equation
+scherkAnalytical 1
+
 ## Output Folder Location
 
 # Location to store the vtk files for visualization

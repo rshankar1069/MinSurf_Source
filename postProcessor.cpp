@@ -7,6 +7,7 @@
  */
 
 #include "postProcessor.h"
+#include "atmsp.h"
 
 // Function to write the structured VTK file of the final solution for visualization
 template<class mType,class dType>
@@ -85,6 +86,9 @@ void structuredGridWriter(int iterationIndex, mType z)
         writer->SetInputData(structuredGrid);
         writer->Write();
     }
+    // TESTING FOR PRINTING THE RESIDUAL VALUE FOR THE SCHERK SURFACE
+    int opt = inputParserObj.getscherkOpt();
+    compareAnalyticSoln<mType,dType>(opt,z);
 }
 
 // Function defined to write the residual values into a csv file
@@ -121,4 +125,75 @@ void residualWriter(int iterationIndex, dType res)
         resfile << iterationIndex << "," << res << std::endl;
     }
     resfile.close();
+}
+
+// Function to compare Analytical solution with the Numerical solution
+template <class mType,class dType>
+void compareAnalyticSoln(int opt, mType z)
+{
+    ATMSP<dType> parser;
+    ATMSB<dType> byteCode;
+
+    std::string varnames;
+
+    std::map<std::string,float> consts = inputParserObj.getConsts();
+    std::vector<std::string> variables = inputParserObj.getVars();
+
+    for(auto constit=consts.begin(); constit!=consts.end(); constit++)
+    {
+        parser.addConstant(constit->first,constit->second);
+    }
+    
+    // Storing the variable names in the parser
+    
+    for(int i=0; i<variables.size(); i++)
+    {
+        if(i!=variables.size()-1)
+            varnames += variables[i]+",";
+        else
+            varnames += variables[i];
+    }
+
+    if(opt == 1) {
+        int N = inputParserObj.getN();
+        dType h = (dType)1.0/N;
+        std::vector<dType> zAnalytic;
+        std::string soln = "log(cos($pi*$SCALE*(x-0.5))/cos($pi*$SCALE*(y-0.5)))";
+        parser.parse(byteCode,soln,varnames);
+        for(int i=0;i<N;i++) {
+            for(int j=0;j<N;j++) {
+                byteCode.var[0] = i*h;
+                byteCode.var[1] = j*h;
+                zAnalytic.push_back(byteCode.run());
+            }
+        }
+        dType l2norm = l2Euclidean(N,z,zAnalytic);
+        dType maxvalnorm = maxNorm(N,z,zAnalytic);
+        std::cout << "The l2-Euclidean Norm :: " << l2norm << std::endl;
+        std::cout << "The Max Norm :: " << maxvalnorm << std::endl;
+    }
+}
+
+// Function to calculate the l2-Euclidean norm
+template <class mType,class dType>
+dType l2Euclidean(int N, mType z, std::vector<dType> zAnalytical)
+{
+    dType res = 0.0;
+    for(int i=0;i<N*N;i++) {
+        res += (zAnalytical[i]-z[i])*(zAnalytical[i]-z[i]);
+        }
+    res = (1.0/N)*sqrt(res);
+    return res;
+}
+
+// Function to calculate the max norm
+template <class mType,class dType>
+dType maxNorm(int N, mType z, std::vector<dType> zAnalytical)
+{
+    dType maxVal = fabs(zAnalytical[0]-z[0]);
+    for(int i=0;i<N*N;i++) {
+        if(maxVal <= fabs(zAnalytical[i]-z[i]))
+            maxVal = fabs(zAnalytical[i]-z[i]);
+    }
+    return maxVal;
 }
