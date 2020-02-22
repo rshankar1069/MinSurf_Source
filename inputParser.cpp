@@ -315,13 +315,13 @@ void input_parser::setnMinParallel()
 }
 
 // Function to set the option to compare FD solution with the Analytical Scherk equation
-void input_parser::setscherkOpt()
+void input_parser::setscherkCheck()
 {
     auto iterator = std::find(tokens.begin(),tokens.end(),"scherkAnalytical");
     if (iterator != tokens.cend())
     {
         int pos = std::distance(tokens.begin(),iterator);
-        scherkOpt = std::stoi(tokens[pos+1]);
+        scherkCheck = std::stoi(tokens[pos+1]);
     }
     else
     {
@@ -442,8 +442,8 @@ int input_parser::getnMinParallel() {
 }
 
 // Function defined to return the option to compare FD solution with Analytical Scherk equation
-int input_parser::getscherkOpt() {
-    return scherkOpt;
+int input_parser::getscherkCheck() {
+    return scherkCheck;
 }
 
 // Function defined to return the vtk file output location

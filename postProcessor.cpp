@@ -11,8 +11,8 @@
 
 // Function to write the structured VTK file of the final solution for visualization
 template<class mType,class dType>
-void structuredGridWriter(int iterationIndex, mType z)
-{
+void structuredGridWriter(int iterationIndex, mType z) {
+
     // Input parser object to get the number of nodes
     int N = inputParserObj.getN();
 
@@ -43,18 +43,16 @@ void structuredGridWriter(int iterationIndex, mType z)
 
     dType h = 1.0/N;
 
-    if(!vtkf.is_open())
-    {
+    if(!vtkf.is_open()) {
         std::cout << "++++++++++ Error in opening the file !! Failed to post-process the data ++++++++++" << std::endl;
         exit(EXIT_FAILURE);
     }
-    else
-    {
+    else {
+    
         // Storing the output data in a vector
         std::vector<dType> data;
         std::string str;
-        while (std::getline(vtkf,str))
-        {
+        while (std::getline(vtkf,str)) {
             if(str.size()>0)
                 data.push_back(std::stod(str));
         }
@@ -65,12 +63,13 @@ void structuredGridWriter(int iterationIndex, mType z)
         vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
         
         unsigned k=0;
-        for(unsigned int j=0;j<N;j++)
-            for(unsigned int i=0;i<N;i++)
-            {
+        for(unsigned int j=0;j<N;j++) {
+            for(unsigned int i=0;i<N;i++) {
+            
                 points->InsertNextPoint(i*h,j*h,data[k]);
                 k++;
             }
+        }
         
         // Specify the dimensions of the grid
         structuredGrid->SetDimensions(N,N,1);
@@ -86,15 +85,18 @@ void structuredGridWriter(int iterationIndex, mType z)
         writer->SetInputData(structuredGrid);
         writer->Write();
     }
-    // TESTING FOR PRINTING THE RESIDUAL VALUE FOR THE SCHERK SURFACE
-    int opt = inputParserObj.getscherkOpt();
-    compareAnalyticSoln<mType,dType>(opt,z);
+    // Determine whether solution has to be compared with analytical solution for 
+    // Scherk surface 
+    int checkAnalytical = inputParserObj.getscherkCheck();
+    if (checkAnalytical) {
+        compareAnalyticSoln<mType,dType>(z); 
+    }
 }
 
 // Function defined to write the residual values into a csv file
 template <class dType>
-void residualWriter(int iterationIndex, dType res)
-{
+void residualWriter(int iterationIndex, dType res) {
+
     int N = inputParserObj.getN();
 
     // Remove directory for every new simulation
@@ -115,22 +117,21 @@ void residualWriter(int iterationIndex, dType res)
 
     std::ofstream resfile;
     resfile.open(filename,std::ios::out | std::ios::app);
-    if(iterationIndex == 1)
-    {
+    if(iterationIndex == 1) {
         resfile << "\"Iteration Index\"" << "," << "\"Residual\"" << std::endl;
         resfile << iterationIndex << "," << res << std::endl;
     }
-    else
-    {
+    else {
         resfile << iterationIndex << "," << res << std::endl;
     }
     resfile.close();
 }
 
-// Function to compare Analytical solution with the Numerical solution
+// Function to compare the analytical solution with the numerical solution
+// for Scherk's surface
 template <class mType,class dType>
-void compareAnalyticSoln(int opt, mType z)
-{
+void compareAnalyticSoln( mType z ) {
+
     ATMSP<dType> parser;
     ATMSB<dType> byteCode;
 
@@ -139,61 +140,63 @@ void compareAnalyticSoln(int opt, mType z)
     std::map<std::string,float> consts = inputParserObj.getConsts();
     std::vector<std::string> variables = inputParserObj.getVars();
 
-    for(auto constit=consts.begin(); constit!=consts.end(); constit++)
-    {
+    for(auto constit=consts.begin(); constit!=consts.end(); constit++) {
         parser.addConstant(constit->first,constit->second);
     }
     
     // Storing the variable names in the parser
     
-    for(int i=0; i<variables.size(); i++)
-    {
-        if(i!=variables.size()-1)
+    for(int i=0; i<variables.size(); i++) {
+        if(i!=variables.size()-1) {
             varnames += variables[i]+",";
-        else
-            varnames += variables[i];
+        }
+        else {
+            varnames += variables[i]; 
+        }
     }
 
-    if(opt == 1) {
-        int N = inputParserObj.getN();
-        dType h = (dType)1.0/N;
-        std::vector<dType> zAnalytic;
-        std::string soln = "log(cos($pi*$SCALE*(x-0.5))/cos($pi*$SCALE*(y-0.5)))";
-        parser.parse(byteCode,soln,varnames);
-        for(int i=0;i<N;i++) {
-            for(int j=0;j<N;j++) {
-                byteCode.var[0] = i*h;
-                byteCode.var[1] = j*h;
-                zAnalytic.push_back(byteCode.run());
-            }
+    int N = inputParserObj.getN();
+    dType h = (dType)1.0/N;
+    std::vector<dType> zAnalytic;
+    std::string soln = "log(cos($pi*$SCALE*(x-0.5))/cos($pi*$SCALE*(y-0.5)))";
+    parser.parse(byteCode,soln,varnames);
+    for(int i=0;i<N;i++) {
+        for(int j=0;j<N;j++) {
+            byteCode.var[0] = i*h;
+            byteCode.var[1] = j*h;
+            zAnalytic.push_back(byteCode.run());
         }
-        dType l2norm = l2Euclidean(N,z,zAnalytic);
-        dType maxvalnorm = maxNorm(N,z,zAnalytic);
-        std::cout << "The l2-Euclidean Norm :: " << l2norm << std::endl;
-        std::cout << "The Max Norm :: " << maxvalnorm << std::endl;
     }
+    dType l2norm = l2Euclidean(N,z,zAnalytic);
+    dType maxvalnorm = maxNorm(N,z,zAnalytic);
+    std::cout << "\t  error in l2-norm : " << l2norm << std::endl;
+    std::cout << "\t  error max-norm : " << maxvalnorm << std::endl;
 }
 
-// Function to calculate the l2-Euclidean norm
+// Function to calculate the Scherk error in the l2 (Euclidian) norm 
 template <class mType,class dType>
-dType l2Euclidean(int N, mType z, std::vector<dType> zAnalytical)
-{
+dType l2Euclidean(int N, mType z, std::vector<dType> zAnalytical) {
+
     dType res = 0.0;
+    // Note, that boundary is already exact. We loop over all grid-points 
+    // to avoid generating a cartesiangrid-instance
     for(int i=0;i<N*N;i++) {
         res += (zAnalytical[i]-z[i])*(zAnalytical[i]-z[i]);
         }
-    res = (1.0/N)*sqrt(res);
+    res = (1.0/N)*std::sqrt(res);
+
     return res;
 }
 
-// Function to calculate the max norm
+// Function to calculate the Scherk error in the  max norm
 template <class mType,class dType>
-dType maxNorm(int N, mType z, std::vector<dType> zAnalytical)
-{
+dType maxNorm(int N, mType z, std::vector<dType> zAnalytical) {
+
     dType maxVal = fabs(zAnalytical[0]-z[0]);
     for(int i=0;i<N*N;i++) {
         if(maxVal <= fabs(zAnalytical[i]-z[i]))
             maxVal = fabs(zAnalytical[i]-z[i]);
     }
+
     return maxVal;
 }

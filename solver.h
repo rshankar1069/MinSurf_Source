@@ -41,9 +41,9 @@ template<class mType, class dType> class solver
         void setMesh( );
         void runSolver( );
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    private:
-        // Private variables
-        // -----------------
+//     private:              }
+        // Private variables } set public for testing
+        // ----------------- }
         int N; // number of gridpoints in one dimension
         dType h; // grid spacing
         int numThreads; // number of threads for OpenMP multithreading

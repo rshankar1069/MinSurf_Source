@@ -41,7 +41,7 @@ template<class dType, class listType> class cartesianGrid
         bdryNodes bdryNodeList;
         
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    private:
+//    private: set public for testing
         
         void setBdryNodes( );
         void setInnerNodes( );
