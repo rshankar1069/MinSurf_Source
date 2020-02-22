@@ -21,7 +21,11 @@ VAR0 x
 VAR1 y
 
 ## Boundary Conditions
-## Use constants with '$' sign to pass the expression to the parser 
+#  Use constants with '$' sign to pass the expression to the parser 
+#  If you want piece-wise boundary conditions: 
+#   We implemented the functions smaller1(VAR), larger1(VAR) in the parser
+#   smaller1(VAR) { (VAR<=1)? 1:0 } and larger1(VAR) { (VAR>=1)? 1:0 }
+#   Make sure to scale VAR such that one compares to 1
 
 BC.BOTTOM  log(cos($pi*$SCALE*(x-0.5))/cos($pi*$SCALE*(y-0.5)))
 BC.RIGHT   log(cos($pi*$SCALE*(x-0.5))/cos($pi*$SCALE*(y-0.5)))

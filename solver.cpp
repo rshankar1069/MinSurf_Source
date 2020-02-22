@@ -241,7 +241,7 @@ void solver<mType, dType>::getInitGuess_Laplace( Eigen::MatrixBase<mType> &z ){
     bicgstab.preconditioner().setDroptol(0.001); // preconditioner
     bicgstab.preconditioner().setFillfactor(20); // tuning
     bicgstab.setTolerance(TOL_linsolver);
-    z = bicgstab.compute(laplaceMatrix).solve(b)
+    z = bicgstab.compute(laplaceMatrix).solve(b);
     
 }
 
