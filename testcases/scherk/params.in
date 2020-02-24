@@ -2,7 +2,7 @@
 
 # ~ Number of gridpoints per dimension
 # --> Have thus noMeshElements^2 elements
-noMeshElements 500 
+noMeshElements 1000 
 
 ## Constants (apart from "pi", "e" and "i")
 ## Append '$' in the front of the constant to pass it to the expression parser
@@ -46,7 +46,7 @@ TOL_newton 1e-6
 
 # Tolerance to use for the convergence of the linear iterative solver
 # TOL_linsolver should not be larger than TOL_newton
-TOL_linsolver 1e-5 
+TOL_linsolver 1e-7 
 
 # Maximum number of iterations for the Newton-Raphson Iterations
 maxIter 50
