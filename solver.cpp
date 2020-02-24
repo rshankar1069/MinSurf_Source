@@ -757,12 +757,12 @@ void solver<mType, dType>::runSolver_DcoMatrixFree( mType &mz, dType &res, unsig
     // Have non-spd matrices -> CG does not work reliably,
     // Eigen library recommends BiCGSTAB over GMRES
     dType rho, rho_new, a, b, w, res1, lastRes=0;
-    std::vector<dType> dz(N*N, 0.0), v(N*N, 0.0), p(N*N, 0.0), r(N*N, 0.0),\
+    std::vector<dType> dz(N*N, 0.0), p(N*N, 0.0), r(N*N, 0.0),\
     s(N*N, 0.0), t(N*N, 0.0), r0(N*N, 0.0), z1(N*N, 0.0), y(N*N, 0.0);
     while (iteration < inputParserObj.getmaxIters()) {
         
         std::vector<ADtype> zt(std::begin(z), std::end(z));
-        for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = dz[i];
+        for (auto& i: grid.innerNodeList) dco::derivative(zt[i]) = dz[i];
         yt = minSurfOp_Vector(zt); // (y, y^(1)) = F^(1)(x, x^(1));
  
         // calculate residual
@@ -779,12 +779,14 @@ void solver<mType, dType>::runSolver_DcoMatrixFree( mType &mz, dType &res, unsig
  
         // initialisation
         for (auto& i: grid.innerNodeList) {
-            p[i] = -1.0*dco::value(yt)[i]-1.0*dco::derivative(yt)[i];
+            r[i] = -1.0*dco::value(yt)[i]-1.0*dco::derivative(yt)[i];
         }
-        r = p; r0 = r; std::vector<dType> p(N*N, 0.0); rho = 1; a = 1; w = 1;
+        dType initRes = innerProduct(r, r);
+        r0 = r; std::vector<dType> p(N*N, 0.0); std::vector<dType> v(N*N, 0.0);
+        rho = 1; a = 1; w = 1;
  
         // matrix free linear iterative solver (BiCGSTAB)
-        while (innerProduct(r, r) > inputParserObj.getTOL_linsolver() || 
+        while (innerProduct(r, r)/initRes > std::pow(inputParserObj.getTOL_linsolver(), 2) || 
                    stopAfterIntermediateLevel) {
             #pragma omp parallel if(N>=NminParallel)
             {
@@ -798,7 +800,7 @@ void solver<mType, dType>::runSolver_DcoMatrixFree( mType &mz, dType &res, unsig
               for (int index=0; index < lengthInnerNodeList; index++) {
                     int i = grid.innerNodeList[index];
                     p[i] = r[i] + b*(p[i]-w*v[i]);
-                    dco::derivative(zt)[i] = p[i];
+                    dco::derivative(zt[i]) = p[i];
               }
               #pragma omp single
               {
@@ -827,7 +829,7 @@ void solver<mType, dType>::runSolver_DcoMatrixFree( mType &mz, dType &res, unsig
                     stopAfterIntermediateLevel = true;
                 }
                 
-                for (auto& i: grid.innerNodeList) dco::derivative(zt)[i] = s[i];
+                for (auto& i: grid.innerNodeList) dco::derivative(zt[i]) = s[i];
                 yt = minSurfOp_Vector(zt);
                 t = dco::derivative(yt);
                 w = innerProduct(t, s) / \
