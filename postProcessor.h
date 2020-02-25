@@ -49,9 +49,4 @@ dType l2Euclidean(const int N, const mType z, const std::vector<dType> zAnalytic
 template <class mType, class dType>
 dType maxNorm(const int N, const mType z, const std::vector<dType> zAnalytical);
 
-// Dummy function to return solution vector -- for testing
-template <class mType, class dType>
-mType getZ(const mType z) { return z; };
-
-
 #endif //POSTPROCESS_H_INCLUDED

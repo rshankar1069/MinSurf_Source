@@ -44,8 +44,12 @@ initGuessChoice 2
 # Tolerance to use for the convergence of the Newton-Raphson Iterations
 TOL_newton 1e-5
 
-# Tolerance to use for the convergence of the linear iterative solver
-# TOL_linsolver should not be larger than TOL_newton
+# Tolerance to use for the convergence of the linear iterative solver 
+# TOL_linsolver should not be much larger than TOL_newton
+#   For DCO matrix free Jacobian, TOL_linsolver should be significantly smaller than
+#   #   TOL_newton, for the other Jacobians, it can (and for performance reasons should) be chosen
+#   #   approximately as large
+#
 TOL_linsolver 1e-6 
 
 # Maximum number of iterations for the Newton-Raphson Iterations

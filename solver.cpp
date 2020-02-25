@@ -917,4 +917,7 @@ void solver<mType, dType>::runSolver( ) {
     // Writing the residual vs. iteration number of the final solution into a csv file
     residualWriter<dType>(iteration, res);
 
+    // Set global solution vector (this is needed only for testing)
+    solution = z;
+
 } 

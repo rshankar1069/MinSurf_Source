@@ -2,7 +2,7 @@
 
 # ~ Number of gridpoints per dimension
 # --> Have thus noMeshElements^2 elements
-noMeshElements 800 
+noMeshElements 50 
 
 ## Constants (apart from "pi", "e" and "i")
 ## Append '$' in the front of the constant to pass it to the expression parser
@@ -44,8 +44,12 @@ initGuessChoice 2
 TOL_newton 1e-4
 
 # Tolerance to use for the convergence of the linear iterative solver 
-# TOL_linsolver should not be larger than TOL_newton
-TOL_linsolver 1e-9 
+# TOL_linsolver should not be much larger than TOL_newton
+#   For DCO matrix free Jacobian, TOL_linsolver should be significantly smaller than
+#   #   TOL_newton, for the other Jacobians, it can (and for performance reasons should) be chosen
+#   #   approximately as large
+#
+TOL_linsolver 1e-4 
 
 # Maximum number of iterations for the Newton-Raphson Iterations
 maxIter 50
@@ -66,7 +70,7 @@ fileFreq 1
 
 ## OpenMP Parameters
 # No of threads for parallel execution
-nThreads 16 
+nThreads 1 
 # Minimal number of gridpoints per dimension for parallel execution 
 nMinParallel 200 
 

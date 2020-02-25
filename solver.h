@@ -34,12 +34,18 @@ template<class mType, class dType> class solver
         solver();
         // Destructor
         ~solver();
-        
+       
+        // Instances of grid and input parser class 
         cartesianGrid<dType, listType> grid;
         input_parser inputParserObj;
-        
+       
+        // Function to set up mesh and run solver from a main file 
         void setMesh( );
         void runSolver( );
+
+        // Getter function for solution vector (mainly for testing)
+        mType getSolution( ) { return solution; };
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // private:              }                // Removing Private Dependency for Testing
         // Private variables } 
@@ -50,6 +56,7 @@ template<class mType, class dType> class solver
         int NminParallel; // minimum number of gridpoints for parallel exec
         dType TOL_linsolver; // tolerance of linear iterative solvers
 
+        mType solution;
         // Private methods
         // --------------- 
         // Boundary conditions
