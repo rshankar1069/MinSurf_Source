@@ -39,14 +39,19 @@ void residualWriter(int iterationIndex, dType res);
 
 // Function to compare Analytical solution with Numerical solution
 template <class mType, class dType>
-void compareAnalyticSoln(mType z);
+void compareAnalyticSoln(const mType z);
 
 // Function to calculate the l2-Euclidean Norm
 template <class mType, class dType>
-dType l2Euclidean(int N, mType z, std::vector<dType> zAnalytical);
+dType l2Euclidean(const int N, const mType z, const std::vector<dType> zAnalytical);
 
 //Function to calculate the Max Norm
 template <class mType, class dType>
-dType maxNorm(int N, mType z, std::vector<dType> zAnalytical);
+dType maxNorm(const int N, const mType z, const std::vector<dType> zAnalytical);
+
+// Dummy function to return solution vector -- for testing
+template <class mType, class dType>
+mType getZ(const mType z) { return z; };
+
 
 #endif //POSTPROCESS_H_INCLUDED

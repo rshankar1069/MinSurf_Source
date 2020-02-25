@@ -130,7 +130,7 @@ void residualWriter(int iterationIndex, dType res) {
 // Function to compare the analytical solution with the numerical solution
 // for Scherk's surface
 template <class mType,class dType>
-void compareAnalyticSoln( mType z ) {
+void compareAnalyticSoln( const mType z ) {
 
     ATMSP<dType> parser;
     ATMSB<dType> byteCode;
@@ -175,7 +175,7 @@ void compareAnalyticSoln( mType z ) {
 
 // Function to calculate the Scherk error in the l2 (Euclidian) norm 
 template <class mType,class dType>
-dType l2Euclidean(int N, mType z, std::vector<dType> zAnalytical) {
+dType l2Euclidean(const int N, const mType z, const std::vector<dType> zAnalytical) {
 
     dType res = 0.0;
     // Note, that boundary is already exact. We loop over all grid-points 
@@ -190,7 +190,7 @@ dType l2Euclidean(int N, mType z, std::vector<dType> zAnalytical) {
 
 // Function to calculate the Scherk error in the  max norm
 template <class mType,class dType>
-dType maxNorm(int N, mType z, std::vector<dType> zAnalytical) {
+dType maxNorm(const int N, const mType z, const std::vector<dType> zAnalytical) {
 
     dType maxVal = fabs(zAnalytical[0]-z[0]);
     for(int i=0; i<N*N; i++) {
