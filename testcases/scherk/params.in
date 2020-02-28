@@ -2,7 +2,7 @@
 
 # ~ Number of gridpoints per dimension
 # --> Have thus noMeshElements^2 elements
-noMeshElements 120 
+noMeshElements 1000 
 
 ## Constants (apart from "pi", "e" and "i")
 ## Append '$' in the front of the constant to pass it to the expression parser
@@ -11,7 +11,9 @@ NUM_CONSTS 2
 
 $OMEGA 1
 # SCALE \in (0,1), for a proper solution it should be less than approx. 0.8
-$SCALE 0.75  
+# convergence per SCALE dependent on noMeshElements
+# To observe O(1/N) convergence of error, SCALE < 0.5 
+$SCALE 0.3 
 
 ## Variables (CASE SENSITIVE)
 # x,y \in [0,1] on the grid 
@@ -38,41 +40,46 @@ BC.LEFT    log(cos($pi*$SCALE*(x-0.5))/cos($pi*$SCALE*(y-0.5)))
 # 0 -> Use Zero initial guess 
 # 1 -> Use average initial guess
 # 2 -> Use Laplace initial guess
-initGuessChoice 2
-
+initGuessChoice 2 
 # Tolerance to use for the convergence of the Newton-Raphson Iterations
-TOL_newton 1e-3
+TOL_newton 1e-6
 
-# Tolerance to use for the convergence of the linear iterative solver
-# TOL_linsolver should not be larger than TOL_newton
+# Tolerance to use for the convergence of the linear iterative solver 
+# TOL_linsolver should not be much larger than TOL_newton
 #   For DCO matrix free Jacobian, TOL_linsolver should be significantly smaller than
 #   #   TOL_newton, for the other Jacobians, it can (and for performance reasons should) be chosen
-#   #   almost as large
+#   #   approximately as large
 #
-TOL_linsolver 1e-5 
+TOL_linsolver 1e-7 
 
 # Maximum number of iterations for the Newton-Raphson Iterations
 maxIter 50
 
 # Relaxation parameter for Newton procedure
 # relaxNewton \in (0,1] 
-relaxNewton 0.8
+relaxNewton 0.85
 
 # Option to choose the Jacobian calculation 
 # -> hardcoded, full Jacobian (0)
 # -> ADbyHand, full Jacobian (1)
 # -> ADbyDCO, matrix-free solver (2)
-jacobianOpt 0
+jacobianOpt 2
 
 ## File writing frequency
 # Set the value to 0 if no output is to be written
-fileFreq 1
+fileFreq 0
 
 ## OpenMP Parameters
 # No of threads for parallel execution
-nThreads 1 
+nThreads 2 
 # Minimal number of gridpoints per dimension for parallel execution 
 nMinParallel 100 
+
+## Option to compare FD solution with analytical solution for Scherk Surface
+# ONLY to be used together with Scherk boundary conditions!
+# 0 -> Do not compare FD with Analytical solution
+# 1 -> Compare FD with Analytical solution
+scherkAnalytical 1
 
 ## Output Folder Location
 

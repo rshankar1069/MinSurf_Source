@@ -201,7 +201,7 @@ void input_parser::setTOL_linsolver()
     }
 }
 
-// Function defined to set the option of using Laplace solution as the initial guess
+// Function defined to set the option of using average or Laplace solution as the initial guess
 void input_parser::setInitGuessChoice()
 {
     auto iterator = std::find(tokens.begin(),tokens.end(),"initGuessChoice");
@@ -311,6 +311,21 @@ void input_parser::setnMinParallel()
     {
         std::cout << "++++++++++ ERROR!! Option for the no of threads for parallel run not specified. Exiting the program ++++++++++" << std::endl;
         exit(EXIT_FAILURE);
+    }
+}
+
+// Function to set the option to compare FD solution with the Analytical Scherk equation
+void input_parser::setscherkCheck()
+{
+    auto iterator = std::find(tokens.begin(),tokens.end(),"scherkAnalytical");
+    if (iterator != tokens.cend())
+    {
+        int pos = std::distance(tokens.begin(),iterator);
+        scherkCheck = std::stoi(tokens[pos+1]);
+    }
+    else
+    {
+        std::cout << "++++++++++ WARNING!! Option for comparing FD solution with Analytical Scherk equation ++++++++++" << std::endl;
     }
 }
 
@@ -424,6 +439,11 @@ int input_parser::getnumThreads() {
 // Function defined to return the no of threads to be used for parallel execution of the program
 int input_parser::getnMinParallel() {
     return nMinParallel;
+}
+
+// Function defined to return the option to compare FD solution with Analytical Scherk equation
+int input_parser::getscherkCheck() {
+    return scherkCheck;
 }
 
 // Function defined to return the vtk file output location

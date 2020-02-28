@@ -7,11 +7,12 @@
  */
 
 #include "postProcessor.h"
+#include "atmsp.h"
 
 // Function to write the structured VTK file of the final solution for visualization
 template<class mType,class dType>
-void structuredGridWriter(int iterationIndex, mType z)
-{
+void structuredGridWriter(int iterationIndex, mType z) {
+
     // Input parser object to get the number of nodes
     int N = inputParserObj.getN();
 
@@ -42,18 +43,16 @@ void structuredGridWriter(int iterationIndex, mType z)
 
     dType h = 1.0/N;
 
-    if(!vtkf.is_open())
-    {
+    if(!vtkf.is_open()) {
         std::cout << "++++++++++ Error in opening the file !! Failed to post-process the data ++++++++++" << std::endl;
         exit(EXIT_FAILURE);
     }
-    else
-    {
+    else {
+    
         // Storing the output data in a vector
         std::vector<dType> data;
         std::string str;
-        while (std::getline(vtkf,str))
-        {
+        while (std::getline(vtkf,str)) {
             if(str.size()>0)
                 data.push_back(std::stod(str));
         }
@@ -64,12 +63,13 @@ void structuredGridWriter(int iterationIndex, mType z)
         vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
         
         unsigned k=0;
-        for(unsigned int j=0;j<N;j++)
-            for(unsigned int i=0;i<N;i++)
-            {
+        for(unsigned int j=0;j<N;j++) {
+            for(unsigned int i=0;i<N;i++) {
+            
                 points->InsertNextPoint(i*h,j*h,data[k]);
                 k++;
             }
+        }
         
         // Specify the dimensions of the grid
         structuredGrid->SetDimensions(N,N,1);
@@ -85,12 +85,18 @@ void structuredGridWriter(int iterationIndex, mType z)
         writer->SetInputData(structuredGrid);
         writer->Write();
     }
+    // Determine whether solution has to be compared with analytical solution for 
+    // Scherk surface 
+    int checkAnalytical = inputParserObj.getscherkCheck();
+    if (checkAnalytical) {
+        compareAnalyticSoln<mType,dType>(z); 
+    }
 }
 
 // Function defined to write the residual values into a csv file
 template <class dType>
-void residualWriter(int iterationIndex, dType res)
-{
+void residualWriter(int iterationIndex, dType res) {
+
     int N = inputParserObj.getN();
 
     // Remove directory for every new simulation
@@ -111,14 +117,87 @@ void residualWriter(int iterationIndex, dType res)
 
     std::ofstream resfile;
     resfile.open(filename,std::ios::out | std::ios::app);
-    if(iterationIndex == 1)
-    {
+    if(iterationIndex == 1) {
         resfile << "\"Iteration Index\"" << "," << "\"Residual\"" << std::endl;
         resfile << iterationIndex << "," << res << std::endl;
     }
-    else
-    {
+    else {
         resfile << iterationIndex << "," << res << std::endl;
     }
     resfile.close();
+}
+
+// Function to compare the analytical solution with the numerical solution
+// for Scherk's surface
+template <class mType,class dType>
+void compareAnalyticSoln( const mType z ) {
+
+    ATMSP<dType> parser;
+    ATMSB<dType> byteCode;
+
+    std::string varnames;
+
+    std::map<std::string,float> consts = inputParserObj.getConsts();
+    std::vector<std::string> variables = inputParserObj.getVars();
+
+    for(auto constit=consts.begin(); constit!=consts.end(); constit++) {
+        parser.addConstant(constit->first,constit->second);
+    }
+    
+    // Storing the variable names in the parser
+    
+    for(int i=0; i<variables.size(); i++) {
+        if(i!=variables.size()-1) {
+            varnames += variables[i]+",";
+        }
+        else {
+            varnames += variables[i]; 
+        }
+    }
+
+    int N = inputParserObj.getN();
+    dType h = (dType)1.0/N;
+    std::vector<dType> zAnalytic(N*N);
+    std::string soln = "log(cos($pi*$SCALE*(x-0.5))/cos($pi*$SCALE*(y-0.5)))";
+    parser.parse(byteCode,soln,varnames);
+    for(int i=0;i<N;i++) {
+        for(int j=0; j<N; j++) {
+            byteCode.var[0] = i*h;
+            byteCode.var[1] = j*h;
+            zAnalytic[i+j*N] = byteCode.run();
+        }
+    }
+    dType l2norm = l2Euclidean(N,z,zAnalytic);
+    dType maxvalnorm = maxNorm(N,z,zAnalytic);
+    std::cout << "\t\terror in l2-norm  : " << l2norm << std::endl;
+    std::cout << "\t\terror in max-norm : " << maxvalnorm << std::endl;
+}
+
+// Function to calculate the Scherk error in the l2 (Euclidian) norm 
+template <class mType,class dType>
+dType l2Euclidean(const int N, const mType z, const std::vector<dType> zAnalytical) {
+
+    dType res = 0.0;
+    // Note, that boundary is already exact. We loop over all grid-points 
+    // to avoid generating a cartesiangrid-instance
+    for(int i=0; i<N*N; i++) {
+        res += (zAnalytical[i]-z[i])*(zAnalytical[i]-z[i]);
+        }
+    res = (1.0/N)*std::sqrt(res);
+
+    return res;
+}
+
+// Function to calculate the Scherk error in the  max norm
+template <class mType,class dType>
+dType maxNorm(const int N, const mType z, const std::vector<dType> zAnalytical) {
+
+    dType maxVal = fabs(zAnalytical[0]-z[0]);
+    for(int i=0; i<N*N; i++) {
+        if(maxVal <= fabs(zAnalytical[i]-z[i])) {
+            maxVal = fabs(zAnalytical[i]-z[i]);
+        }
+    }
+
+    return maxVal;
 }

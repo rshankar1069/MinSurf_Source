@@ -43,10 +43,10 @@ initGuessChoice 2
 TOL_newton 1e-4
 
 # Tolerance to use for the convergence of the linear iterative solver 
-# TOL_linsolver should not be larger than TOL_newton
+# TOL_linsolver should not be much larger than TOL_newton
 #   For DCO matrix free Jacobian, TOL_linsolver should be significantly smaller than
 #   #   TOL_newton, for the other Jacobians, it can (and for performance reasons should) be chosen
-#   #   almost as large
+#   #   approximately as large
 #
 TOL_linsolver 1e-9 
 
@@ -72,6 +72,12 @@ fileFreq 1
 nThreads 4 
 # Minimal number of gridpoints per dimension for parallel execution 
 nMinParallel 100 
+
+## Option to compare FD solution with analytical solution for Scherk Surface
+# ONLY to be used together with Scherk boundary conditions!
+# 0 -> Do not compare FD with Analytical solution
+# 1 -> Compare FD with Analytical solution
+scherkAnalytical 0
 
 ## Output Folder Location
 

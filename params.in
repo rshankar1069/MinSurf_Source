@@ -4,7 +4,7 @@
 
 # ~ Number of gridpoints per dimension
 # --> Have thus noMeshElements^2 elements
-noMeshElements 100
+noMeshElements 300
 
 ## Constants (apart from "pi", "e" and "i")
 ## Append '$' in the front of the constant to pass it to the expression parser
@@ -42,13 +42,14 @@ BC.LEFT   sin($pi*y)
 initGuessChoice 2
 
 # Tolerance to use for the convergence of the Newton-Raphson Iterations
-TOL_newton 1e-6
+TOL_newton 1e-5
 
-# Tolerance to use for the convergence of the linear iterative solver
-# TOL_linsolver should not be larger than TOL_newton
+# Tolerance to use for the convergence of the linear iterative solver 
+# TOL_linsolver should not be much larger than TOL_newton
 #   For DCO matrix free Jacobian, TOL_linsolver should be significantly smaller than
-#   TOL_newton, for the other Jacobians, it can (and for performance reasons should) be chosen
-#   almost as large
+#   #   TOL_newton, for the other Jacobians, it can (and for performance reasons should) be chosen
+#   #   approximately as large
+#
 TOL_linsolver 1e-6 
 
 # Maximum number of iterations for the Newton-Raphson Iterations
@@ -56,13 +57,13 @@ maxIter 50
 
 # Relaxation parameter for Newton procedure
 # relaxNewton \in (0,1] 
-relaxNewton 50
+relaxNewton 0.9 
 
 # Option to choose the Jacobian calculation 
 # -> hardcoded, full Jacobian (0)
 # -> ADbyHand, full Jacobian (1)
 # -> ADbyDCO, matrix-free solver (2)
-jacobianOpt 0
+jacobianOpt 1
 
 ## File writing frequency
 # Set the value to 0 if no output is to be written
@@ -72,7 +73,12 @@ fileFreq 0
 # No of threads for parallel execution
 nThreads 4 
 # Minimal number of gridpoints per dimension for parallel execution 
-nMinParallel 100 
+nMinParallel 900 
+
+## Option to compare FD solution with Analytical solution for Scherk surface
+# 0 -> Do not compare with analytical Scherk surface equation
+# 1 -> Compare with analytical Scherk surface equation
+scherkAnalytical 0
 
 ## Output Folder Location
 
