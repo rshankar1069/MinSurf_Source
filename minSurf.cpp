@@ -34,12 +34,6 @@
 #include"postProcessor.h"
 #include"postProcessor.cpp"
 
-// Whatever only needs to touch the inner nodes, maybe (and probably)
-//       there is a smart way to avoid allocating the full N*N
-// Returning the vector of the minSurfOperator does not really work
-// --> Switch to Eigen-containers!
-//     --> Now computing the minSurfOperator explodes, but should be resolved quickly
-
 
 int main() {
 
@@ -48,10 +42,15 @@ int main() {
     typedef Eigen::Matrix<dType,-1, 1> mType; // -1 -> Dynamic allocation (for arrays > 16, what 
                                                // we usually have, there is no performance benefit 
                                                // for fixed size allocation
-    
+   
+    // Create instance of solver 
     solver<mType, dType> minSurf;
+    // Setup the mesh
     minSurf.setMesh();
-    std::cout << "noGridPoints: " << minSurf.grid.noGridPoints << std::endl;
+    // Output number of grid points
+    std::cout << "N: " << minSurf.grid.noGridPoints << "\t number of gridpoints: "
+              << minSurf.grid.noGridPoints*minSurf.grid.noGridPoints << std::endl;
+    // Run the solver, including pre- & postprocessing according to input file
     minSurf.runSolver();
 
 }
