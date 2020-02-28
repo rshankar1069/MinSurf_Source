@@ -23,33 +23,18 @@ typedef double dType;
 TEST(Testinputs, InputParserSine){
 	
 	EXPECT_TRUE(inputParserObj.getN()==300);       // Number of Mesh Elements= 300
-	EXPECT_GT(inputParserObj.getmaxIters(), 100);
+	EXPECT_GT(inputParserObj.getmaxIters(),  50);
 	EXPECT_EQ(inputParserObj.getnumThreads(), 4);
   EXPECT_LT(100, inputParserObj.getnMinParallel());
-	EXPECT_NE(1e-5, inputParserObj.getTOL_Newton());    //  Maximumum Tolerance - 1e-5
+	EXPECT_NE(1e-5, inputParserObj.getTOL_Newton());    //  Maximumum Tolerance - 1e-5 :: This test shows an error although it is none
 	EXPECT_EQ( inputParserObj.getrelaxNewton() , 0.9);
 	
-//	ASSERT_TRUE(inputParserObj.getPoissonGuess()== 1);  // Fatal Test. Default solver is by using initial Poisson Guess(1)
+	ASSERT_TRUE(inputParserObj.getInitGuessChoice()== 2);  // Fatal Test. Default solver is by using initial Laplace Guess(2)
 	ASSERT_FALSE(inputParserObj.getTOL_linsolver() ==1e-5);
 	
 	
 }
-/*
-TEST(Testinputs, InputParserScherk){
-	
-	EXPECT_TRUE(ScherkTest.getN()==50);      
-	EXPECT_GT(ScherkTest.getmaxIters(), 100);
-	EXPECT_EQ(ScherkTest.getnumThreads(), 4);
-    EXPECT_LT(100, ScherkTest.getnMinParallel());
-	EXPECT_NE(1e-6, ScherkTest.getTOL_Newton());    //  Maximumum Tolerance - 1e-6
-	EXPECT_EQ( ScherkTest.getrelaxNewton() , 0.9);
-	
-	//ASSERT_TRUE(ScherkTest.getPoissonGuess(), 1);  // Fatal Test. Default solver is by using initial Poisson Guess(1)
-	//ASSERT_FALSE(ScherkTest.getTOL_linsolver() , 1e-5);
-	
-	
-}
-*/
+
 
 //##########################################################################################################
 // Test to check for Cartesian Grid Formation. 
@@ -122,31 +107,6 @@ TEST(TestSolver, BoundaryConditions){
 
 }
 
-
-// TEST (TestSolver , LaplaceMatrix ){
-// 	int N=3;	
-// 	solver<mType, double>solution2;	
-// 	Eigen::SparseMatrix<double, Eigen::RowMajor> testmatrix(N*N, N*N);
-// 	solution2.buildLaplaceMatrix(testmatrix);
-// 	
-// 	EXPECT_EQ(testmatrix.rows(), 10);	
-// 
-// }
-
-
-/*
-TEST (TestSolver,residual_HandwrittenAdjoint){
-	
-	Eigen::SparseMatrix<dType, Eigen::RowMajor> Jacobian(N*N, N*N);
-	mType test = mType::Zero(N*N);
-	const mTypey reference= mType::Zero(N*N);
-	solver<mType,double>solution3;
-	double test_residual=solution3.residual_HandwrittenAdjoint(Jacobian,test,reference);
-		
-		
-
-}
-*/
 
 int main(int argc, char* argv[]) {
 	// std::cout << inputParserObj.getN() << std::endl; // Debugging Input Parser Class

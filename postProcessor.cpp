@@ -11,7 +11,7 @@
 
 // Function to write the structured VTK file of the final solution for visualization
 template<class mType,class dType>
-void structuredGridWriter(int iterationIndex, mType z) {
+void structuredGridWriter(int iterationIndex, mType z, bool lastIteration) {
 
     // Input parser object to get the number of nodes
     int N = inputParserObj.getN();
@@ -87,9 +87,29 @@ void structuredGridWriter(int iterationIndex, mType z) {
     }
     // Determine whether solution has to be compared with analytical solution for 
     // Scherk surface 
+    std::vector<dType> errors(2); // container to store error in case it
+                                  // the last iteration
     int checkAnalytical = inputParserObj.getscherkCheck();
     if (checkAnalytical) {
-        compareAnalyticSoln<mType,dType>(z); 
+        errors = compareAnalyticSoln<mType,dType>(z); 
+        // Inside last iteration, check if error is small enough 
+        // small enough <=> the validity of the computation is tested
+        // this error is highly dependent on the SCALE-variable; 
+        // if SCALE close to 1, convergence is less and less guaranteed
+        // as a rule of thumb measure, choose this tolerance to be SCALE^2
+        // This is somewhat arbitrary, but is always smaller 1 and 
+        // ressembles the behaviour of a reducing error for smaller SCALE 
+        // Recall: errors[0]: l2-error, errors[1]: max-error
+        //         errors[2]: SCALE^2 ~ error tolerance
+        if (lastIteration) {
+            if ( errors[0] < errors[2] && errors[1] < errors[2] ) {
+                std::cout << "Validity check of simulation successful. All fine..." << std::endl;
+            }
+            else {
+                std::cout << "ERROR. Validity check was not successful. Check your tuning parameters." 
+                          << std::endl;
+            }
+        }
     }
 }
 
@@ -130,7 +150,7 @@ void residualWriter(int iterationIndex, dType res) {
 // Function to compare the analytical solution with the numerical solution
 // for Scherk's surface
 template <class mType,class dType>
-void compareAnalyticSoln( const mType z ) {
+std::vector<dType> compareAnalyticSoln( const mType z ) {
 
     ATMSP<dType> parser;
     ATMSB<dType> byteCode;
@@ -167,10 +187,23 @@ void compareAnalyticSoln( const mType z ) {
             zAnalytic[i+j*N] = byteCode.run();
         }
     }
-    dType l2norm = l2Euclidean(N,z,zAnalytic);
-    dType maxvalnorm = maxNorm(N,z,zAnalytic);
-    std::cout << "\t\terror in l2-norm  : " << l2norm << std::endl;
-    std::cout << "\t\terror in max-norm : " << maxvalnorm << std::endl;
+    dType l2Err = l2Euclidean(N,z,zAnalytic);
+    dType maxErr = maxNorm(N,z,zAnalytic);
+    std::cout << "\t\terror in l2-norm  : " <<  l2Err << std::endl;
+    std::cout << "\t\terror in max-norm : " << maxErr << std::endl;
+
+    // Assemble error output
+    std::vector<dType> errorOut(3);
+    errorOut[0] =  l2Err;
+    errorOut[1] = maxErr;
+
+    // Return variable SCALE as entry errorOut[2]
+    std::string getScale = "$SCALE*$SCALE";
+    parser.parse(byteCode,getScale,varnames);
+    errorOut[2] = byteCode.run();
+
+    return errorOut;
+
 }
 
 // Function to calculate the Scherk error in the l2 (Euclidian) norm 

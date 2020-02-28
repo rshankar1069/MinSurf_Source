@@ -606,16 +606,18 @@ dType solver<mType, dType>::residual_matFree( const vecType &resVec) {
 
 // Misc functions 
 // °°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
-// Write solver output
+// Write solver output called from within a solver loop
 template<class mType, class dType>
 template<class vecType>
 void solver<mType, dType>::writeLoopOutput( const vecType &z, const dType res, const unsigned iteration ) {
+
+   bool lastIteration = false; // Inside solver, never last iteration
 
    if(inputParserObj.getfileFreq() > 0) {
        // Writing the output data
        if( !(iteration%inputParserObj.getfileFreq()) ) {
            // Writing the vtk files for visualization
-           structuredGridWriter<vecType, dType>(iteration, z);
+           structuredGridWriter<vecType, dType>(iteration, z, lastIteration);
            // Writing the residual vs. iteration number into a csv file
            residualWriter<dType>(iteration,res);
 
@@ -912,7 +914,8 @@ void solver<mType, dType>::runSolver( ) {
  
 
     // Writing final output data
-    structuredGridWriter<mType,dType>(iteration, z);
+    bool lastIteration = true;
+    structuredGridWriter<mType,dType>(iteration, z, lastIteration);
  
     // Writing the residual vs. iteration number of the final solution into a csv file
     residualWriter<dType>(iteration, res);

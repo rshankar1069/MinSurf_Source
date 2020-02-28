@@ -2,7 +2,7 @@
 
 # ~ Number of gridpoints per dimension
 # --> Have thus noMeshElements^2 elements
-noMeshElements 1000 
+noMeshElements 100 
 
 ## Constants (apart from "pi", "e" and "i")
 ## Append '$' in the front of the constant to pass it to the expression parser
@@ -13,7 +13,7 @@ $OMEGA 1
 # SCALE \in (0,1), for a proper solution it should be less than approx. 0.8
 # convergence per SCALE dependent on noMeshElements
 # To observe O(1/N) convergence of error, SCALE < 0.5 
-$SCALE 0.3 
+$SCALE 0.85 
 
 ## Variables (CASE SENSITIVE)
 # x,y \in [0,1] on the grid 
@@ -42,7 +42,7 @@ BC.LEFT    log(cos($pi*$SCALE*(x-0.5))/cos($pi*$SCALE*(y-0.5)))
 # 2 -> Use Laplace initial guess
 initGuessChoice 2 
 # Tolerance to use for the convergence of the Newton-Raphson Iterations
-TOL_newton 1e-6
+TOL_newton 1e-2
 
 # Tolerance to use for the convergence of the linear iterative solver 
 # TOL_linsolver should not be much larger than TOL_newton
@@ -50,14 +50,14 @@ TOL_newton 1e-6
 #   #   TOL_newton, for the other Jacobians, it can (and for performance reasons should) be chosen
 #   #   approximately as large
 #
-TOL_linsolver 1e-7 
+TOL_linsolver 1e-1 
 
 # Maximum number of iterations for the Newton-Raphson Iterations
 maxIter 50
 
 # Relaxation parameter for Newton procedure
 # relaxNewton \in (0,1] 
-relaxNewton 0.85
+relaxNewton 0.7
 
 # Option to choose the Jacobian calculation 
 # -> hardcoded, full Jacobian (0)
