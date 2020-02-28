@@ -15,9 +15,9 @@
 #include "gtest/gtest.h"
 
 typedef Eigen::Matrix<double,-1, 1> mType;
+typedef double dType;
 
 //#######################################################################################
-
 // TEST input Parser for Sine Testcase
 
 TEST(Testinputs, InputParserSine){
