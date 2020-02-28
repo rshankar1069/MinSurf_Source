@@ -14,8 +14,8 @@
 template <class dType, class listType>
 void cartesianGrid<dType, listType>::setupGrid() {
 
-    int N = inputParserObj.getN(); // Currently using number of nodes along x for both directions
-                                // Can be extended for different no. of nodes along x and y later on
+    int N = inputParserObj.getN(); 
+                                
     setNoGridPoints(N);
     setGridSpacing();
     

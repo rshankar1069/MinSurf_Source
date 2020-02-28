@@ -4,26 +4,7 @@
  *  Project 1 - "Minimal Surfaces"
  *
  *  Main execution file
- *  So far: g++ -std=c++14 -O3  minSurf.cpp solver.cpp cartesianGrid.cpp -Wall
- *  @Praveen: could you write a make-file (or CMake, whatever you prefer), that can
- *            -> make (just compile)
- *            -> make run (compile and run the code)
- *            -> make test (compile and run the tests)
- *            -> Tests (you can start with this now I guess)
- *  @Chenfei: -> DCO (hope we have the same result then ^^)
- *            -> parallelization
- *  @someone: -> implement timings
- *  @Sankar:  -> pre& postprocessing
- *            -> input-file: initGuess yes or no -> make this dependent on it
- * 
- *  Whatever you do, check out a branch for this "project". I.e. not a personal branch, but a 
- *  branch "inputParser", where you only work on input-stuff or a branch "openMP", where you only 
- *  work on OpenMP
- *  Commit your changes as often as possible inside the branch, and only commit to the master once 
- *  done or once you have achieved a "bigger milestone"
- *  I guess we are doing quite well so far, so we should not have a problem delivering a nice code
- *  at the end!
- */
+*/
 
 #include"inputParser.h"
 #include"inputParser.cpp"
@@ -48,8 +29,10 @@ int main() {
     // Setup the mesh
     minSurf.setMesh();
     // Output number of grid points
+    std::cout << "-------------------------------------------------------------" << std::endl;
     std::cout << "N: " << minSurf.grid.noGridPoints << "\t number of gridpoints: "
               << minSurf.grid.noGridPoints*minSurf.grid.noGridPoints << std::endl;
+    std::cout << "-------------------------------------------------------------" << std::endl;
     // Run the solver, including pre- & postprocessing according to input file
     minSurf.runSolver();
 

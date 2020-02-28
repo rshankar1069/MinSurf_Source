@@ -8,7 +8,6 @@
 
 #pragma once
 
-// Here we want some further explanations...
 
 template<class dType, class listType> class cartesianGrid 
 {
@@ -21,16 +20,11 @@ template<class dType, class listType> class cartesianGrid
 
         // Set information
         void setupGrid( );
-                  // @Sankar: you could define this function for the marriage 
-                  // with the input parser! (then inside, call setNoGridPoints etc. to
-                  // set everything important up)
-        
+       
         // Get information
         dType getCooX(int index);
         dType getCooY(int index);
         
-        // We could also define getters for the next two variables, but I don't know if that won't 
-        // be too inconvenient later
         int noGridPoints;
         dType gridSpacing; // need better name!
         
@@ -47,8 +41,8 @@ template<class dType, class listType> class cartesianGrid
         void setInnerNodes( );
         
         void setNoGridPoints( int N ) { noGridPoints = N; }
-        void setGridSpacing( ) { gridSpacing = 1.0 / noGridPoints; } // make sure to only use when 
-                                                                     // noGridPoints is set!
+        void setGridSpacing( ) { gridSpacing = 1.0 / noGridPoints; } 
+                                                                     
         
 };
 

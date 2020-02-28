@@ -670,7 +670,8 @@ void solver<mType, dType>::writeLoopOutput( const vecType &z, const dType res, c
 
    bool lastIteration = false; // Inside solver, never last iteration
 
-   if(inputParserObj.getfileFreq() > 0) {
+   if(inputParserObj.getfileFreq() > 0) { // suppress ouput if wished; suppressing also error calculation here
+                                          //    since this also influences timings
        // Writing the output data
        if( !(iteration%inputParserObj.getfileFreq()) ) {
            // Writing the vtk files for visualization
@@ -782,6 +783,8 @@ void solver<mType, dType>::runSolver_WithMatrix( Eigen::MatrixBase<mType> &z, in
         writeLoopOutput<mType>(z, res, iteration);
         // Check if solver stuck
         if (checkProgress(res, lastRes) && iteration>=5) {
+            std::cout << "-------------------------------------------------------------" 
+                      << std::endl;
             std::cout << "\tSolver is not making any progress. Aborting..." << std::endl;
             break;
         }
@@ -796,6 +799,9 @@ void solver<mType, dType>::runSolver_WithMatrix( Eigen::MatrixBase<mType> &z, in
 // Run solver loop using AD by dco_c++
 template<class mType, class dType>
 void solver<mType, dType>::runSolver_DcoMatrixFree( mType &mz, dType &res, unsigned &iteration ) {
+
+
+    std::cout << "\tInitial guess is determined. Start solver loop..." << std::endl;
 
     std::vector<dType> z(N*N);
     for (int i=0; i<N*N; i++)
@@ -914,6 +920,7 @@ void solver<mType, dType>::runSolver( ) {
 
     mType z = mType::Zero(N*N);
     
+    std::cout << "-------------------------------------------------------------" << std::endl;
     std::cout << "Chose to run";
     // Choose initial guess
     if (inputParserObj.getInitGuessChoice() == 0) {
@@ -933,18 +940,18 @@ void solver<mType, dType>::runSolver( ) {
         std::cout << "++++++++++ ERROR!! Invalid keyword for initial guess entered. Exiting the program ++++++++++" << std::endl;
         exit(EXIT_FAILURE);
     }
- 
-    std::cout << "Run minSurf-solver with" ;
+    std::cout << "-------------------------------------------------------------" << std::endl;
+    std::cout << "Run minSurf-solver with: " << std::endl;;
     int jacobianOpt = inputParserObj.getjacobianOpt();
     switch(jacobianOpt) {
         case 0:
-               std::cout << " Jacobian by symbolic differentiation." << std::endl;
+               std::cout << "\tJacobian by symbolic differentiation." << std::endl;
                break;
         case 1:
-               std::cout << " Jacobian by handwritten adjoint AD." << std::endl;
+               std::cout << "\tJacobian by handwritten adjoint AD." << std::endl;
                break;
         case 2:
-               std::cout << " DCO tangent Jacobian option with matrix free solver." << std::endl;
+               std::cout << "\tDCO tangent Jacobian option with matrix free solver." << std::endl;
                break;
         default: 
                std::cout << "\n\nInvalid option for Jacobian. Try again...";
@@ -952,7 +959,7 @@ void solver<mType, dType>::runSolver( ) {
                break;
                
     }
-
+    std::cout << "-------------------------------------------------------------" << std::endl;
     dType res=0; unsigned iteration=0;
     // If using one of the algorithms that assemble a matrix, enter solver loop
     if (jacobianOpt==0 || jacobianOpt==1)
@@ -974,5 +981,5 @@ void solver<mType, dType>::runSolver( ) {
 
     // Set global solution vector (this is needed only for testing)
     solution = z;
-
+    std::cout << "-------------------------------------------------------------" << std::endl;
 } 
