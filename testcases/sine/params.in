@@ -27,10 +27,10 @@ VAR1 y
 #   Make sure to scale VAR such that one compares to 1
 
 
-BC.BOTTOM  1 #sin($pi*x) 
-BC.RIGHT   1 #sin($pi*y)
-BC.TOP     1 #sin($pi*x)
-BC.LEFT    0 #sin($pi*y)
+BC.BOTTOM  sin($pi*x) 
+BC.RIGHT   sin($pi*y)
+BC.TOP     sin($pi*x)
+BC.LEFT    sin($pi*y)
 
 ## Tuning Parameters
 ## Parameters required to control the simulation run
