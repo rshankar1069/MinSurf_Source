@@ -757,16 +757,12 @@ void solver<mType, dType>::runSolver_WithMatrix( Eigen::MatrixBase<mType> &z, in
         // dz_n = grad[F(z_n)]^-1 * F(z_n)
         // Solve by BiCGSTAB
         // Why --> testing on the Laplace matrix yielded, that this is 
-        // similarly fast as SparseLU, and faster if one uses IncompleteLUT preconditioning
-        //
-        // Since in a discussion with Klaus we thought, using the full system would not have 
-        // any downsides, we pretty much fixated on not to use the reduced system, and 
-        // now it is pretty much to late to change this again.
-        // BUT: Using the full system yields empty (zero) rows in the Jacobian
-        // This is something, BiCGSTAB with Jacobi-Preconditioner (default) can deal with,
-        // but LU decomposition cannot. Thus, to increase performance, it would help a 
-        // GREAT deal to change to the reduced system! 
-        Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor> > bicgstab;
+        // a bit slower than as SparseLU, 
+        // and faster if one uses IncompleteLUT preconditioning
+        Eigen::BiCGSTAB<Eigen::SparseMatrix<dType, Eigen::RowMajor>,
+                        Eigen::IncompleteLUT<dType> >  bicgstab;
+        bicgstab.preconditioner().setDroptol(0.001); // preconditioner
+        bicgstab.preconditioner().setFillfactor(20); // tuning
         bicgstab.setTolerance(TOL_linsolver);
         bicgstab.compute(Jacobian);
 
