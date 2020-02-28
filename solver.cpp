@@ -426,6 +426,34 @@ void solver<mType, dType>::minSurfJac_Symbolic( Eigen::SparseMatrix<dType, Eigen
             tripletListLoc.clear();
           }
     }
+
+    // Set a "1" on the diagonal of the boundary nodes to avoid empty rows
+    #pragma omp parallel if(N>=NminParallel) 
+    {
+      #pragma omp sections nowait 
+      {
+        #pragma omp section
+        {
+          for(auto& i: grid.bdryNodeList.bottom)
+              tripletList.push_back( triplet(i, i, 1) );
+        } 
+        #pragma omp section
+        {
+          for(auto& i: grid.bdryNodeList.right)
+              tripletList.push_back( triplet(i, i, 1) );
+        } 
+        #pragma omp section
+        {
+          for(auto& i: grid.bdryNodeList.top)
+              tripletList.push_back( triplet(i, i, 1) );
+        } 
+        #pragma omp section
+        {
+          for(auto& i: grid.bdryNodeList.left)
+              tripletList.push_back( triplet(i, i, 1) );
+        } 
+      }
+    }
           
     // Build sparse matrix from triplets
     Jacobian.setFromTriplets(tripletList.begin(), tripletList.end(),
@@ -436,111 +464,140 @@ void solver<mType, dType>::minSurfJac_Symbolic( Eigen::SparseMatrix<dType, Eigen
 // Jacobian via AD by hand
 // returns application of minSurf-operator + Jacobian
 template <class mType, class dType> 
-void solver<mType, dType>::minSurfJac_HandwrittenAdjoint( Eigen::SparseMatrix<dType, Eigen::RowMajor> &Jacobian, 
-                                                Eigen::MatrixBase<mType> &outVec, 
-                                                const Eigen::MatrixBase<mType> &inVec) {
-    
-   typedef Eigen::Triplet<dType> triplet;
-   std::vector<triplet> tripletList;
-   tripletList.reserve(9 * N * N);
-
-   #pragma omp parallel num_threads(numThreads) if(N>=NminParallel)
-   {
-     dType a1_y;
-     std::vector<dType> a1_x(9);
-     // Divide work among threads -> get numThreads heavy loops and only
-     //                              numThreads times communication necessary
-     //                              setFromTriplets does not need triplets ordered
-     int me = omp_get_thread_num(); 
-     int my_start = ( me ) * grid.innerNodeList.size()/numThreads;
-     int my_end   = (me+1) * grid.innerNodeList.size()/numThreads;
-     if (me == numThreads-1 || N<NminParallel)
-         my_end = (int) grid.innerNodeList.size();
-       
-     // Build triplets locally
-     std::vector<triplet> tripletListLoc;
-     tripletListLoc.reserve( (int) 10*N*N/numThreads);
-     // Over local piece of work 
-     for(int index = my_start; index < my_end; index++) {
-         int i = grid.innerNodeList[index];
-         
-         // forward
-         // d(...) = fd(x)
-         dType dx = getDx(inVec, i);
-         dType dy = getDy(inVec, i);
-         dType dxx = getDxx(inVec, i);
-         dType dyy = getDyy(inVec, i);
-         dType dxy = getDxy(inVec, i);
- 
-         // v1 = (1+z_x^2)*z_yy
-         dType v1 = (1 + pow(dx, 2)) * dyy;
-         // v2 = -2*z_x*z_y*z_xy
-         dType v2 = -2 * dx * dy * dxy;
-         // v3 = (1+z_y^2)*z_xx
-         dType v3 = (1 + pow(dy, 2)) * dxx;
-
-         // Forward result - minSurf(inVec)  
-         outVec[i] = v1 + v2 + v3; // Index i is only accessed by me <- no atomic necessary
- 
-         // reverse
-         // seed a1_y
-         a1_y = 1.;
+void solver<mType, dType>::minSurfJac_HandwrittenAdjoint( Eigen::SparseMatrix<dType, 
+                                                          Eigen::RowMajor> &Jacobian, 
+                                                          Eigen::MatrixBase<mType> &outVec, 
+                                                          const Eigen::MatrixBase<mType> &inVec) {
      
-         // reverse of y[i] = v1 + v2 + v3
-         dType a1_v1 = a1_y;
-         dType a1_v2 = a1_y;
-         dType a1_v3 = a1_y;
+    typedef Eigen::Triplet<dType> triplet;
+    std::vector<triplet> tripletList;
+    tripletList.reserve(9 * N * N);
  
-         //reverse of v3 = (1 + pow(dy, 2)) * dxx
-         dType a1_dy = dxx * 2 * dy * a1_v3;
-         dType a1_dxx = (1 + pow(dy, 2)) * a1_v3;
- 
-         //reverse v2 = -2 * dx * dy * dxy
-         dType a1_dx = -2 * dy * dxy * a1_v2;
-         a1_dy += -2 * dx * dxy * a1_v2;
-         dType a1_dxy = -2 * dx * dy * a1_v2;
- 
-         //reverse of v1 = (1 + pow(dx, 2)) * dyy
-         a1_dx += dyy * 2 * dx * a1_v1;
-         dType a1_dyy = (1 + pow(dx, 2)) * a1_v1;
- 
-         // reverse of d(...) = fd(x)
-         a1_x[5] = a1_dx / (2 * h);
-         a1_x[3] = a1_dx / (-2 * h);
-         a1_x[7] = a1_dy / (2 * h);
-         a1_x[1] = a1_dy / (-2 * h);
-         a1_x[5] += a1_dxx / (h * h);
-         a1_x[3] += a1_dxx / (h * h);
-         a1_x[4] = (-2) * a1_dxx / (h * h);
-         a1_x[7] += a1_dyy / (h * h);
-         a1_x[1] += a1_dyy / (h * h);
-         a1_x[4] += (-2) * a1_dyy / (h * h);
-         a1_x[8] = a1_dxy / (4 * h * h);
-         a1_x[0] = a1_dxy / (4 * h * h);
-         a1_x[2] = a1_dxy / (-4 * h * h);
-         a1_x[6] = a1_dxy / (-4 * h * h);
- 
-         // store derivatives in triplets
-         tripletListLoc.push_back(triplet(i, i - 1 - N, a1_x[0]));
-         tripletListLoc.push_back(triplet(i, i     - N, a1_x[1]));
-         tripletListLoc.push_back(triplet(i, i + 1 - N, a1_x[2]));
-         tripletListLoc.push_back(triplet(i, i - 1,     a1_x[3]));
-         tripletListLoc.push_back(triplet(i, i,         a1_x[4]));
-         tripletListLoc.push_back(triplet(i, i + 1,     a1_x[5]));
-         tripletListLoc.push_back(triplet(i, i - 1 + N, a1_x[6]));
-         tripletListLoc.push_back(triplet(i, i     + N, a1_x[7]));
-         tripletListLoc.push_back(triplet(i, i + 1 + N, a1_x[8]));
-     }
-    // Combine local triplet list to global one
-    #pragma omp critical
+    #pragma omp parallel num_threads(numThreads) if(N>=NminParallel)
     {
-      std::move(tripletListLoc.begin(), tripletListLoc.end(),
-                std::back_inserter(tripletList) );
-      tripletListLoc.clear();
+      dType a1_y;
+      std::vector<dType> a1_x(9);
+      // Divide work among threads -> get numThreads heavy loops and only
+      //                              numThreads times communication necessary
+      //                              setFromTriplets does not need triplets ordered
+      int me = omp_get_thread_num(); 
+      int my_start = ( me ) * grid.innerNodeList.size()/numThreads;
+      int my_end   = (me+1) * grid.innerNodeList.size()/numThreads;
+      if (me == numThreads-1 || N<NminParallel)
+          my_end = (int) grid.innerNodeList.size();
+        
+      // Build triplets locally
+      std::vector<triplet> tripletListLoc;
+      tripletListLoc.reserve( (int) 10*N*N/numThreads);
+      // Over local piece of work 
+      for(int index = my_start; index < my_end; index++) {
+          int i = grid.innerNodeList[index];
+          
+          // forward
+          // d(...) = fd(x)
+          dType dx = getDx(inVec, i);
+          dType dy = getDy(inVec, i);
+          dType dxx = getDxx(inVec, i);
+          dType dyy = getDyy(inVec, i);
+          dType dxy = getDxy(inVec, i);
+  
+          // v1 = (1+z_x^2)*z_yy
+          dType v1 = (1 + pow(dx, 2)) * dyy;
+          // v2 = -2*z_x*z_y*z_xy
+          dType v2 = -2 * dx * dy * dxy;
+          // v3 = (1+z_y^2)*z_xx
+          dType v3 = (1 + pow(dy, 2)) * dxx;
+ 
+          // Forward result - minSurf(inVec)  
+          outVec[i] = v1 + v2 + v3; // Index i is only accessed by me <- no atomic necessary
+  
+          // reverse
+          // seed a1_y
+          a1_y = 1.;
+      
+          // reverse of y[i] = v1 + v2 + v3
+          dType a1_v1 = a1_y;
+          dType a1_v2 = a1_y;
+          dType a1_v3 = a1_y;
+  
+          //reverse of v3 = (1 + pow(dy, 2)) * dxx
+          dType a1_dy = dxx * 2 * dy * a1_v3;
+          dType a1_dxx = (1 + pow(dy, 2)) * a1_v3;
+  
+          //reverse v2 = -2 * dx * dy * dxy
+          dType a1_dx = -2 * dy * dxy * a1_v2;
+          a1_dy += -2 * dx * dxy * a1_v2;
+          dType a1_dxy = -2 * dx * dy * a1_v2;
+  
+          //reverse of v1 = (1 + pow(dx, 2)) * dyy
+          a1_dx += dyy * 2 * dx * a1_v1;
+          dType a1_dyy = (1 + pow(dx, 2)) * a1_v1;
+  
+          // reverse of d(...) = fd(x)
+          a1_x[5] = a1_dx / (2 * h);
+          a1_x[3] = a1_dx / (-2 * h);
+          a1_x[7] = a1_dy / (2 * h);
+          a1_x[1] = a1_dy / (-2 * h);
+          a1_x[5] += a1_dxx / (h * h);
+          a1_x[3] += a1_dxx / (h * h);
+          a1_x[4] = (-2) * a1_dxx / (h * h);
+          a1_x[7] += a1_dyy / (h * h);
+          a1_x[1] += a1_dyy / (h * h);
+          a1_x[4] += (-2) * a1_dyy / (h * h);
+          a1_x[8] = a1_dxy / (4 * h * h);
+          a1_x[0] = a1_dxy / (4 * h * h);
+          a1_x[2] = a1_dxy / (-4 * h * h);
+          a1_x[6] = a1_dxy / (-4 * h * h);
+  
+          // store derivatives in triplets
+          tripletListLoc.push_back(triplet(i, i - 1 - N, a1_x[0]));
+          tripletListLoc.push_back(triplet(i, i     - N, a1_x[1]));
+          tripletListLoc.push_back(triplet(i, i + 1 - N, a1_x[2]));
+          tripletListLoc.push_back(triplet(i, i - 1,     a1_x[3]));
+          tripletListLoc.push_back(triplet(i, i,         a1_x[4]));
+          tripletListLoc.push_back(triplet(i, i + 1,     a1_x[5]));
+          tripletListLoc.push_back(triplet(i, i - 1 + N, a1_x[6]));
+          tripletListLoc.push_back(triplet(i, i     + N, a1_x[7]));
+          tripletListLoc.push_back(triplet(i, i + 1 + N, a1_x[8]));
+      }
+     // Combine local triplet list to global one
+     #pragma omp critical
+     {
+       std::move(tripletListLoc.begin(), tripletListLoc.end(),
+                 std::back_inserter(tripletList) );
+       tripletListLoc.clear();
+     }
+  
+    }  
+
+    // Set a "1" on the diagonal of the boundary nodes to avoid empty rows
+    #pragma omp parallel if(N>=NminParallel)
+    {
+      #pragma omp sections nowait 
+      {
+       #pragma omp section
+       {
+         for(auto& i: grid.bdryNodeList.bottom)
+              tripletList.push_back( triplet(i, i, 1) );
+        } 
+        #pragma omp section
+        {
+          for(auto& i: grid.bdryNodeList.right)
+              tripletList.push_back( triplet(i, i, 1) );
+        } 
+        #pragma omp section
+        {
+          for(auto& i: grid.bdryNodeList.top)
+              tripletList.push_back( triplet(i, i, 1) );
+        } 
+        #pragma omp section
+        {
+          for(auto& i: grid.bdryNodeList.left)
+              tripletList.push_back( triplet(i, i, 1) );
+        } 
+      }
     }
  
-   }  
-
    // Build sparse matrix from triplets
    Jacobian.setFromTriplets(tripletList.begin(), tripletList.end());
 
@@ -725,7 +782,6 @@ void solver<mType, dType>::runSolver_WithMatrix( Eigen::MatrixBase<mType> &z, in
             res = residual_Symbolic(resVec, z);
         if (jacobianOpt == 1)
             res = residual_HandwrittenAdjoint(Jacobian, resVec, z);
-        
         iteration++;
         writeLoopOutput<mType>(z, res, iteration);
         // Check if solver stuck
